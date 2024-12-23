@@ -16,7 +16,9 @@ const userSchema = new mongoose.Schema(
 
         password: {
             type: String,
-            required: [true, 'Password is required']
+            required: [true, 'Password is required'],
+            trim: true,
+            minlength: [8, "Password must be at least 8 characters long"],
         },
 
         fullName: {
@@ -36,7 +38,7 @@ const userSchema = new mongoose.Schema(
 
         avatar: {
             type: String,
-            default: ""
+            default: "https://static.vecteezy.com/system/resources/thumbnails/002/318/271/small_2x/user-profile-icon-free-vector.jpg"
         },
 
         current_address: {
@@ -63,7 +65,6 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre("save", async function (next) {
 
-    // if not modified return next()
     if (!this.isModified("password")) return (next())
 
     this.password = await bcrypt.hash(this.password, 10)
@@ -80,9 +81,9 @@ userSchema.methods.generateAccessToken = function () {
         {
             _id: this._id, 
             email: this.email,
-            address: this.address,
             fullName: this.fullName,
-            phone: this.phone
+            phone: this.phone,
+            current_address: this.current_address
 
         },
 
