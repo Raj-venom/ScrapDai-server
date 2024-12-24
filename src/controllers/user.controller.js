@@ -46,11 +46,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (existedUser) {
         if (existedUser.isverified) {
-            if (existedUser?.phone === phone) {
+            if (existedUser?.phone === phone.trim()) {
                 throw new ApiError(400, "User with this phone number already exist")
             }
 
-            if (existedUser?.email === email) {
+            if (existedUser?.email === email.trim()) {
                 throw new ApiError(400, "User with this email already exist")
             }
         }
@@ -150,7 +150,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
     user.password = undefined
     user.refreshToken = undefined
-    
+
 
     await sendEmail(email, {
         subject: "Email Verification",
@@ -164,7 +164,83 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
 });
 
+const loginUser = asyncHandler(async (req, res) => {
+
+    const { identifier, password } = req.body
+
+    if (
+        [identifier, password].some((field) => field?.trim() === "" || field?.trim() == undefined)
+    ) {
+        throw new ApiError(400, "identifier and password is required")
+    }
+
+    const user = await User.findOne({
+        $or: [{ email: identifier }, { phone: identifier }]
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
+    if (!user.isverified) {
+        throw new ApiError(400, "User not verified")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid user credentials")
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user._id)
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken -otp -otpExpiry")
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, cookieOptions)
+        .cookie("refreshToken", refreshToken, cookieOptions)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user: loggedInUser, accessToken, refreshToken
+                },
+                "User logged In Successfully"
+            )
+        )
+})
+
+const logoutUser = asyncHandler(async (req, res) => {
+
+    const logout = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $unset: {
+                refreshToken: 1
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    if (!logout) {
+        throw new ApiError(500, "Something went wrong while logouting user")
+    }
+
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", cookieOptions)
+        .clearCookie("refreshToken", cookieOptions)
+        .json(new ApiResponse(200, {}, "User logged Out"))
+
+})
+
 export {
     registerUser,
     verifyOtp,
+    loginUser,
+    logoutUser
 }
