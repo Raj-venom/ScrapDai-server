@@ -45,13 +45,23 @@ const userSchema = new mongoose.Schema(
             type: {
                 type: String,
                 enum: ["Point"],
-                required: true
             },
             coordinates: {
                 type: [Number],
-                required: true
             },
-            index: "2dsphere",
+        },
+
+        otp: {
+            type: String,
+        },
+
+        otpExpiry: {
+            type: Date,
+        },
+
+        isverified: {
+            type: Boolean,
+            default: false
         },
 
         refreshToken: {
@@ -63,6 +73,8 @@ const userSchema = new mongoose.Schema(
         timestamps: true,
     }
 )
+
+userSchema.index({ current_address: "2dsphere" })
 
 userSchema.pre("save", async function (next) {
 
@@ -80,7 +92,7 @@ userSchema.methods.generateAccessToken = function () {
 
     return Jwt.sign(
         {
-            _id: this._id, 
+            _id: this._id,
             email: this.email,
             fullName: this.fullName,
             phone: this.phone,
