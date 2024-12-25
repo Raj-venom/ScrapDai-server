@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { GENDER } from "../constants";
+import { GENDER } from "../constants.js";
 
 
 const userSchema = new mongoose.Schema(
@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema(
             required: true,
             unique: true,
             lowercase: true,
-            trim: true
+            trim: true,
+            index: true, 
         },
 
         password: {
@@ -32,7 +33,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true,
-            index: true,
+            index: true, 
             unique: true
         },
 
