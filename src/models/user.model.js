@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { GENDER } from "../constants";
 
 
 const userSchema = new mongoose.Schema(
@@ -25,7 +26,6 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true,
-            index: true
         },
 
         phone: {
@@ -34,6 +34,12 @@ const userSchema = new mongoose.Schema(
             trim: true,
             index: true,
             unique: true
+        },
+
+        gender: {
+            type: String,
+            enum: [...GENDER],
+            default: "Male"
         },
 
         avatar: {

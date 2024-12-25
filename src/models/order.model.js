@@ -45,8 +45,8 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["pending", "completed", "cancelled"],
-        default: "pending"
+        enum: ["PENDING", "CANCELLED", "DELIVERED"],
+        default: "PENDING"
     },
     totalAmount: {
         type: Number,
@@ -58,7 +58,13 @@ const orderSchema = new mongoose.Schema({
     feedback: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Feedback",
-    }
+    },
+    scrapImage: [
+        {
+            type: String,
+            required: true
+        }
+    ],
 
 
 }, { timestamps: true });

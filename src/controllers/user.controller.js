@@ -5,6 +5,7 @@ import { User } from "../models/user.model.js"
 import jwt from "jsonwebtoken";
 import { generateOtp, sendEmail, cookieOptions } from "../utils/Helper.js";
 import { verifyOtpText, WelcomeText } from "../utils/EmailText.js"
+import { GENDER } from "../constants.js";
 
 
 const generateAccessAndRefereshTokens = async (userId) => {
@@ -238,9 +239,97 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 })
 
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+
+    const { oldPassword, newPassword } = req.body
+
+    if (
+        [oldPassword, newPassword].some((field) => field === "" || field?.trim() == undefined)
+    ) {
+        throw new ApiError(400, "Both Old Password and new password is required")
+    }
+
+    if (oldPassword === newPassword) {
+        throw new ApiError(400, "Old password and new password must be different")
+    }
+
+    const user = await User.findById(req.user?._id)
+
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid old password")
+    }
+
+    user.password = newPassword
+    await user.save()
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Password changed successfully"))
+
+
+})
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+
+    return res
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            req.user,
+            "User fetched successfully"
+        ))
+})
+
+const updateUserProfile = asyncHandler(async (req, res) => {
+
+    const { fullName, phone, gender } = req.body
+
+    if (fullName?.trim() === "") {
+        throw new ApiError(400, "Full name is required")
+    }
+
+    if (phone?.length !== 10) {
+        throw new ApiError(400, "Phone number must be 10 digits")
+    }
+
+    if (gender && ![...GENDER].includes(gender.trim())) {
+        throw new ApiError(400, "Invalid Gender Option")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName: fullName.trim(),
+                phone: phone.trim(),
+                gender: gender?.trim()
+            }
+        },
+        { new: true }
+    ).select("-password -refreshToken -otp -otpExpiry")
+
+    if (!user) {
+        throw new ApiError(500, "Something went wrong while updating the user")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "User updated successfully"))
+
+})
+
 export {
     registerUser,
     verifyOtp,
     loginUser,
-    logoutUser
+    logoutUser,
+    changeCurrentPassword,
+    updateUserProfile,
+    getCurrentUser
 }

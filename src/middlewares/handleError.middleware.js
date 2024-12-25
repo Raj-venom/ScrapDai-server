@@ -22,16 +22,40 @@ export const handleError = (err, req, res, next) => {
     if (err.name === 'ValidationError') {
         return res.status(400).json({
             success: false,
+            message: err.errors[Object.keys(err.errors)[0]].message,
+            // errors: err.errors
+        });
+    }
+
+    if (err.name === 'MongoServerError' && err.code === 11000) {
+        return res.status(400).json({
+            success: false,
+            message: 'Duplicate key error',
+            errors: err.keyValue 
+        });
+    }
+
+    if(err.errors){
+        return res.status(400).json({
+            success: false,
+            message: err.errors[Object.keys(err.errors)[0]].message,
+            errors: err.errors
+        });
+    }
+
+    if (err.name) {
+        return res.status(500).json({
+            success: false,
             message: err.message,
             errors: err.errors
         });
     }
 
-    if (err.name === 'MongoError' && err.code === 11000) {
+    if(err.errors){
         return res.status(400).json({
             success: false,
-            message: 'Duplicate key error',
-            errors: err.keyValue
+            message: err.errors[Object.keys(err.errors)[0]].message,
+            // errors: err.errors
         });
     }
 
