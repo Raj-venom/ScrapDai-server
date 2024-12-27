@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
             unique: true,
             lowercase: true,
             trim: true,
-            index: true, 
+            index: true,
         },
 
         password: {
@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true,
-            index: true, 
+            index: true,
             unique: true
         },
 
@@ -92,7 +92,7 @@ userSchema.pre("save", async function (next) {
 })
 
 userSchema.methods.isPasswordCorrect = async function (password) {
-    return await bcrypt.compare(password, this.password)
+    return await bcrypt.compare(password.trim(), this.password)
 }
 
 userSchema.methods.generateAccessToken = function () {

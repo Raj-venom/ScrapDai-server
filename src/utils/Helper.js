@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import { ApiError } from "./ApiError.js";
 
 const generateOtp = () => {
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -41,8 +42,8 @@ const sendEmail = async (email, { subject, text, body }) => {
             console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
         });
     } catch (error) {
-        console.log(error)
-        throw new ApiError(500, "Something went wrong while sending email")
+        console.error("Failed to send email:", error.message);
+        throw new ApiError(500, error.message)
 
     }
 
@@ -55,8 +56,15 @@ const cookieOptions = {
 }
 
 
+const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(\.[a-zA-Z]{2,})+$/;
+    return emailRegex.test(email);
+};
+
+
 export {
     generateOtp,
     sendEmail,
-    cookieOptions
+    cookieOptions,
+    validateEmail
 }
