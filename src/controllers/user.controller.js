@@ -3,8 +3,8 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.model.js"
 import jwt from "jsonwebtoken";
-import { generateOtp, sendEmail, cookieOptions } from "../utils/Helper.js";
-import { verifyOtpText, WelcomeText } from "../utils/EmailText.js"
+import { generateOtp, sendEmail, cookieOptions, validateEmail } from "../utils/Helper.js";
+import { verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
 import { GENDER } from "../constants.js";
 
 
@@ -33,7 +33,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const { fullName, email, password, phone } = req.body
 
     if (
-        [fullName, email, password, phone].some((field) => field?.trim() === "" || field?.trim() == undefined)
+        [fullName, password, phone].some((field) => field?.trim() === "" || field?.trim() == undefined)
     ) {
         throw new ApiError(400, "All field are required")
     }
@@ -42,8 +42,12 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Phone number must be 10 digits")
     }
 
+    if (!validateEmail(email)) {
+        throw new ApiError(400, "Invalid email address")
+    }
 
     const existedUser = await User.findOne({ $or: [{ email }, { phone }] })
+    const { otp, otpExpiry } = generateOtp()
 
     if (existedUser) {
         if (existedUser.isverified) {
@@ -57,13 +61,6 @@ const registerUser = asyncHandler(async (req, res) => {
         }
 
         if (!existedUser.isverified) {
-            const { otp, otpExpiry } = generateOtp()
-
-            sendEmail(email, {
-                subject: "Email Verification",
-                text: `Your otp is ${otp} from text`,
-                body: verifyOtpText(otp)
-            })
 
             existedUser.fullName = fullName.trim()
             existedUser.email = email.trim()
@@ -78,44 +75,61 @@ const registerUser = asyncHandler(async (req, res) => {
                 "-password -refreshToken -otp -otpExpiry"
             )
 
-            return res
+            res
                 .status(200)
                 .json(new ApiResponse(200, sanitizedUser, "Verification otp sent to your email"))
 
+            // const response = await fetch('https://ipinfo.io/json')
+            // const userLocationData = await response.json()
+
+            // sendEmail(email, {
+            //     subject: "Email Verification",
+            //     text: `Your otp is ${otp} from text`,
+            //     body: verifyOtpTextWithIP(otp, userLocationData || {})
+            // })
+
+            // return
+
         }
+
+    } else {
+
+        const user = await User.create(
+            {
+                fullName: fullName.trim(),
+                email: email.trim(),
+                password: password.trim(),
+                phone: phone.trim(),
+                otp,
+                otpExpiry
+            }
+        )
+
+        const createdUser = await User.findById(user._id).select(
+            "-password -refreshToken -otp -otpExpiry"
+        )
+
+        if (!createdUser) {
+            throw new ApiError(500, "something went wrong while registering the user")
+        }
+
+        res
+            .status(201)
+            .json(new ApiResponse(201, createdUser, "Verification otp sent to your email"))
 
     }
 
-    const { otp, otpExpiry } = generateOtp()
 
-    await sendEmail(email, {
+    const response = await fetch('https://ipinfo.io/json')
+    const userLocationData = await response.json()
+
+    sendEmail(email, {
         subject: "Email Verification",
         text: `Your otp is ${otp} from text`,
-        body: verifyOtpText(otp)
+        body: verifyOtpTextWithIP(otp, userLocationData || {})
     })
 
-    const user = await User.create(
-        {
-            fullName: fullName.trim(),
-            email: email.trim(),
-            password: password.trim(),
-            phone: phone.trim(),
-            otp,
-            otpExpiry
-        }
-    )
-
-    const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken -otp -otpExpiry"
-    )
-
-    if (!createdUser) {
-        throw new ApiError(500, "something went wrong while registering the user")
-    }
-
-    return res
-        .status(201)
-        .json(new ApiResponse(201, createdUser, "Verification otp sent to your email"))
+    return
 
 })
 
@@ -365,6 +379,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, error?.message || "Invalid refresh token")
     }
 })
+
+
 
 export {
     registerUser,
