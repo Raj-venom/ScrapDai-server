@@ -4,7 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.model.js"
 import jwt from "jsonwebtoken";
 import { generateOtp, sendEmail, cookieOptions, validateEmail } from "../utils/Helper.js";
-import { verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
+import { forgotPasswordEmail, verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
 import { GENDER } from "../constants.js";
 
 
@@ -133,7 +133,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
-const verifyOtp = asyncHandler(async (req, res) => {
+const verifyUserWithOtp = asyncHandler(async (req, res) => {
 
     const { email, otp } = req.body
 
@@ -147,6 +147,10 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
     if (!user) {
         throw new ApiError(404, "User not found")
+    }
+
+    if(user.isverified) {
+        throw new ApiError(400, "User already verified")
     }
 
     if (user.otp !== otp) {
@@ -380,15 +384,128 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
+const resetPassword = asyncHandler(async (req, res) => {
+    const { password, otp, email } = req.body;
+    const token = req.params.resetToken;
 
+    console.log("token", token)
+
+    if (!password?.trim()) {
+        throw new ApiError(400, "Password is required")
+    }
+
+    let user;
+
+    if (otp) {
+        if (!validateEmail(email)) {
+            throw new ApiError(400, "Invalid email address")
+        }
+        user = await User.findOne({ email });
+
+        if (!user) {
+            throw new ApiError(404, "User not found")
+        }
+
+        if (user.otp !== otp) {
+            throw new ApiError(400, "Invalid otp")
+        }
+
+        if (new Date() > user.otpExpiry) {
+            throw new ApiError(400, "otp expired please request for a new one")
+        }
+
+    } else {
+
+        try {
+            const decoded = jwt.verify(token, process.env.RESET_PASSWORD_SECRET);
+            if (!decoded) {
+                throw new ApiError(400, "Invalid reset token")
+            }
+
+            user = await User.findById(decoded?._id);
+
+            if (!user) {
+                throw new ApiError(404, "User not found")
+            }
+
+        } catch (error) {
+            console.log(error.message)
+            throw new ApiError(400, "Unauthorized Token");
+        }
+
+    }
+
+    user.password = password;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+
+    const updatedUser = await user.save();
+
+    if (!updatedUser) {
+        throw new ApiError(500, "Something went wrong while updating the password")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Password reset successfully"))
+
+})
+
+
+const forgotPassword = asyncHandler(async (req, res) => {
+
+    const { email } = req.body;
+
+    if (!validateEmail(email)) {
+        throw new ApiError(400, "Invalid email address")
+    }
+
+    const user = await User.findOne({ email })
+
+    if (!user || !user.isverified) {
+        throw new ApiError(404, "User not found or not verified")
+    }
+
+    const resetToken = user.generateResetPasswordToken();
+    const resetLink = `${process.env.CLIENT_URL}/user/reset-password?token=${resetToken}`;
+
+
+    const { otp, otpExpiry } = generateOtp()
+
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    const updatedUser = await user.save();
+
+    if (!updatedUser) {
+        throw new ApiError(500, "Something went wrong while generating otp")
+    }
+
+    res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Otp sent to your email"))
+
+    const response = await fetch('https://ipinfo.io/json')
+    const userLocationData = await response.json()
+
+    await sendEmail(email, {
+        subject: "Password Reset",
+        text: `Your otp is ${otp}`,
+        body: forgotPasswordEmail(resetLink, otp, userLocationData)
+    })
+
+    return
+
+});
 
 export {
     registerUser,
-    verifyOtp,
+    verifyUserWithOtp,
     loginUser,
     logoutUser,
     changeCurrentPassword,
     updateUserProfile,
     getCurrentUser,
-    refreshAccessToken
+    refreshAccessToken,
+    resetPassword,
+    forgotPassword
 }
