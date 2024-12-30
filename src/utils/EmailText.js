@@ -35,7 +35,7 @@ const WelcomeText = () => {
 }
 
 const verifyOtpTextWithIP = (otp, userLocationData) => {
-    const { ip, city, region, country, loc, org, timezone } = userLocationData;
+    const { ip, city, region, country, loc, org } = userLocationData;
 
     return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); background-color: #f9fdf9;">
@@ -53,13 +53,12 @@ const verifyOtpTextWithIP = (otp, userLocationData) => {
         <h3 style="color: #333; text-align: center; margin-top: 20px;">Your Registration Details</h3>
         <p style="font-size: 14px; color: #555;">
             <strong>IP Address:</strong> ${ip || "Unknown IP"} <br />
-            <strong>Location:</strong> ${city  || "Unknown location"}, ${region}, ${country} <br />
+            <strong>Location:</strong> ${city || "Unknown location"}, ${region}, ${country} <br />
             <strong>Coordinates:</strong> ${loc || "Unknown"} <br />
             <strong>Organization:</strong> ${org || "Unknown"} <br />
-            <strong>Timezone:</strong> ${timezone || "Unkonwn"}
         </p>
 
-        <p style="font-size: 16px;">If you didn’t request this, please ignore this email or contact our support team.</p>
+        <p style="font-size: 16px;">If you didn't request this, please ignore this email or contact our support team.</p>
         
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 14px; color: #888;">
             <p>Thank you for taking the first step towards a cleaner, greener world!</p>
@@ -69,9 +68,56 @@ const verifyOtpTextWithIP = (otp, userLocationData) => {
     `;
 }
 
+const forgotPasswordEmail = (resetLink, otp, userLocationData) => {
+    const { city, region, country, ip, timezone } = userLocationData;
+
+    return `
+  <div style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 8px; background-color: #f9fdf9; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Scrap Dai Logo" style="width: 60px;"/>
+    </div>
+    <h2 style="text-align: center; color: #4CAF50; margin-bottom: 20px;">Reset Your Password</h2>
+    <p style="font-size: 16px; color: #333; text-align: center;">
+      Hello, we received a request to reset your password for your <strong>Scrap Dai</strong> account. Use the OTP below or click the reset link to set a new password.
+    </p>
+  
+    <!-- OTP Section -->
+    <div style="text-align: center; margin: 20px 0;">
+      <span style="display: inline-block; background-color: #e6ffe6; padding: 15px 30px; border: 1px solid #4CAF50; border-radius: 8px; font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #4CAF50;">${otp}</span>
+    </div>
+    <p style="text-align: center; font-size: 14px; color: #666;">This OTP is valid for 5 minutes. Keep it secure.</p>
+  
+    <!-- Reset Link Section -->
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="${resetLink}" style="display: inline-block; background-color: #4CAF50; color: #fff; text-decoration: none; padding: 12px 24px; font-size: 16px; border-radius: 5px; font-weight: bold;">Reset Password</a>
+    </div>
+  
+    <!-- Location Information -->
+    <div style="margin-top: 30px; padding: 15px; background-color: #f4f4f4; border-radius: 8px; text-align: left; font-size: 14px; color: #555;">
+      <p><strong>Account Activity Details:</strong></p>
+      <p><strong>IP Address:</strong> ${ip || "Unknown"}</p>
+      <p><strong>Location:</strong> ${city || "Unknown"}, ${region || "Unknown"}, ${country || "Unknown"}</p>
+      <p><strong>Timezone:</strong> ${timezone || "Unknown"}</p>
+      <p style="font-size: 12px; color: #999;">If this wasn't you, please secure your account immediately by contacting support.</p>
+    </div>
+  
+    <!-- Security Notice -->
+    <p style="font-size: 14px; color: #888; margin-top: 30px; text-align: center;">
+      If you didn't request this, no action is required. If you suspect unauthorized access, please secure your account immediately.
+    </p>
+  
+    <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px; text-align: center; font-size: 14px; color: #aaa;">
+      <p>Thank you for using Scrap Dai!</p>
+      <p><strong>The Scrap Dai Team</strong></p>
+    </div>
+  </div>
+    `;
+};
+
 
 export {
     verifyOtpText,
     WelcomeText,
-    verifyOtpTextWithIP
+    verifyOtpTextWithIP,
+    forgotPasswordEmail
 }
