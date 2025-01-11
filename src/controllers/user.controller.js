@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { generateOtp, sendEmail, cookieOptions, validateEmail } from "../utils/Helper.js";
 import { forgotPasswordEmail, verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
 import { GENDER } from "../constants.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 
 const generateAccessAndRefereshTokens = async (userId) => {
@@ -149,7 +150,7 @@ const verifyUserWithOtp = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found")
     }
 
-    if(user.isverified) {
+    if (user.isverified) {
         throw new ApiError(400, "User already verified")
     }
 
@@ -304,44 +305,6 @@ const getCurrentUser = asyncHandler(async (req, res) => {
         ))
 })
 
-//TODO: Update Profile Picture
-const updateUserProfile = asyncHandler(async (req, res) => {
-
-    const { fullName, phone, gender } = req.body
-
-    if (fullName?.trim() === "") {
-        throw new ApiError(400, "Full name is required")
-    }
-
-    if (phone?.length !== 10) {
-        throw new ApiError(400, "Phone number must be 10 digits")
-    }
-
-    if (gender && ![...GENDER].includes(gender.trim())) {
-        throw new ApiError(400, "Invalid Gender Option")
-    }
-
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set: {
-                fullName: fullName.trim(),
-                phone: phone.trim(),
-                gender: gender?.trim()
-            }
-        },
-        { new: true }
-    ).select("-password -refreshToken -otp -otpExpiry")
-
-    if (!user) {
-        throw new ApiError(500, "Something went wrong while updating the user")
-    }
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, user, "User updated successfully"))
-
-})
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
 
@@ -497,6 +460,65 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 });
 
+
+const updateUserProfile = asyncHandler(async (req, res) => {
+
+    const avatarLocalPath = req.file?.path
+
+    const avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : undefined
+
+    const { fullName, phone, gender } = req.body
+
+    if (fullName?.trim() === "") {
+        throw new ApiError(400, "Full name is required")
+    }
+
+    if (phone?.trim().length !== 10) {
+        throw new ApiError(400, "Phone number must be 10 digits")
+    }
+
+    if (gender && ![...GENDER].includes(gender.trim())) {
+        throw new ApiError(400, "Invalid Gender Option")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName: fullName.trim(),
+                phone: phone.trim(),
+                gender: gender?.trim(),
+                avatar: avatar?.url || req.user?.avatar
+            }
+        },
+        { new: true }
+    ).select("-password -refreshToken -otp -otpExpiry")
+
+    if (!user) {
+        throw new ApiError(500, "Something went wrong while updating the user")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "User updated successfully"))
+
+})
+
+const deleteUser = asyncHandler(async (req, res) => {
+
+    const deleteUser = await User.findOneAndDelete(req?.user?._id);
+
+    if (!deleteUser) {
+        throw new ApiError(500, "Something went wrong while deleting the user")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "User deleted successfully"));
+
+})
+
+
 export {
     registerUser,
     verifyUserWithOtp,
@@ -507,5 +529,6 @@ export {
     getCurrentUser,
     refreshAccessToken,
     resetPassword,
-    forgotPassword
+    forgotPassword,
+    deleteUser
 }
