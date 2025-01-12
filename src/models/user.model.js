@@ -75,6 +75,21 @@ const userSchema = new mongoose.Schema(
             type: String
         },
 
+        deletionRequested: {
+            type: Boolean,
+            default: false
+        },
+
+        deletionRequestDate: {
+            type: Date,
+            default: null
+        },
+
+        cancelDeletionToken: {
+            type: String,
+            default: null
+        }
+
     },
     {
         timestamps: true,
@@ -144,5 +159,19 @@ userSchema.methods.generateResetPasswordToken = function () {
     )
 }
 
+userSchema.methods.generateCancelDeletionToken = function () {
+
+    return Jwt.sign(
+        {
+            _id: this._id,
+        },
+        process.env.CANCEL_DELETION_SECRET,
+
+        {
+            expiresIn: process.env.CANCEL_DELETION_EXPIRY
+        }
+    )
+
+}
 
 export const User = mongoose.model("User", userSchema)

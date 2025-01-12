@@ -4,7 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.model.js"
 import jwt from "jsonwebtoken";
 import { generateOtp, sendEmail, cookieOptions, validateEmail } from "../utils/Helper.js";
-import { forgotPasswordEmail, verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
+import { accountDeletionEmail, forgotPasswordEmail, verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
 import { GENDER } from "../constants.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
@@ -214,7 +214,21 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user._id)
 
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken -otp -otpExpiry")
+    const loggedInUser = await User.findByIdAndUpdate(
+        user._id,
+        {
+            $unset: {
+                deletionRequestDate: 1,
+                cancelDeletionToken: 1,
+
+            },
+            $set: {
+                deletionRequested: false
+            }
+
+        },
+        { new: true }
+    ).select("-password -refreshToken -otp -otpExpiry -deletionRequested -deletionRequestDate -cancelDeletionToken")
 
     return res
         .status(200)
@@ -463,9 +477,18 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 const updateUserProfile = asyncHandler(async (req, res) => {
 
-    const avatarLocalPath = req.file?.path
 
-    const avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : undefined
+    const avatarLocalPath = req.file?.path
+    console.log("avatarlocalpath", avatarLocalPath)
+
+    // const avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : undefined
+
+    let avatar;
+    if (avatarLocalPath) {
+        avatar = await uploadOnCloudinary(avatarLocalPath)
+    }
+
+    console.log(avatar, "avatar")
 
     const { fullName, phone, gender } = req.body
 
@@ -481,7 +504,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid Gender Option")
     }
 
-    const user = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -494,29 +517,139 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password -refreshToken -otp -otpExpiry")
 
-    if (!user) {
+    if (!updatedUser) {
         throw new ApiError(500, "Something went wrong while updating the user")
     }
 
     return res
         .status(200)
-        .json(new ApiResponse(200, user, "User updated successfully"))
+        .json(new ApiResponse(200, updatedUser, "User updated successfully"))
 
 })
 
-const deleteUser = asyncHandler(async (req, res) => {
+const requestAccountDeletion = asyncHandler(async (req, res) => {
 
-    const deleteUser = await User.findOneAndDelete(req?.user?._id);
+    const user = await User.findById(req?.user?._id);
 
-    if (!deleteUser) {
-        throw new ApiError(500, "Something went wrong while deleting the user")
+    if (!user) {
+        throw new ApiError(404, "User not found")
     }
+
+    if (user.deletionRequested) {
+        throw new ApiError(400, "Deletion request already made")
+    }
+
+    const token = user.generateCancelDeletionToken();
+
+    console.log("token", token)
+
+
+    user.deletionRequested = true;
+    user.deletionRequestDate = new Date();
+    user.cancelDeletionToken = token;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    user.refreshToken = undefined;
+
+    await user.save();
+
+    const cancelLink = `${process.env.CLIENT_URL}/user/cancel-deletion?token=${token}`;
+
+    await sendEmail(user.email, {
+        subject: "Account Deletion Request",
+        text: "Account deletion request initiated",
+        body: accountDeletionEmail(cancelLink, process.env.CANCEL_DELETION_EXPIRY)
+    })
 
     return res
         .status(200)
-        .json(new ApiResponse(200, {}, "User deleted successfully"));
+        .json(new ApiResponse(200, {}, "Account deletion request initiated"))
+
 
 })
+
+const cancelAccountDeletion = asyncHandler(async (req, res) => {
+
+    const token = req.params.cancelToken;
+
+    if (!token) {
+        throw new ApiError(400, "Invalid token")
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.CANCEL_DELETION_SECRET);
+
+        if (!decoded) {
+            throw new ApiError(400, "Invalid token")
+        }
+
+        const user = await User.findById(decoded?._id);
+
+        if (!user) {
+            throw new ApiError(404, "User not found")
+        }
+
+        if (!user.deletionRequested) {
+            throw new ApiError(400, "Deletion request not found")
+        }
+
+        const timeElapsed = (new Date() - new Date(user.deletionRequestDate)) / (1000 * 60 * 60 * 24);
+
+        if (timeElapsed > process.env.CANCEL_DELETION_EXPIRY) {
+            throw new ApiError(400, "Deletion request expired")
+        }
+
+        user.deletionRequested = false;
+        user.deletionRequestDate = null;
+        user.cancelDeletionToken = null;
+
+        await user.save();
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, {}, "Account deletion request cancelled successfully"))
+
+    } catch (error) {
+        console.log(error.message)
+        throw new ApiError(400, "Unauthorized Token");
+    }
+
+
+})
+
+const autoDeleteUsers = async (req, res) => {
+    console.log("Auto delete users controller started at: " + new Date().toISOString());
+
+    try {
+
+        const deletionThreshold = new Date();
+        deletionThreshold.setMinutes(deletionThreshold.getMinutes() - 2);
+
+
+        // Find users eligible for deletion
+        const usersToDelete = await User.find({
+            deletionRequested: true,
+            deletionRequestDate: { $lte: deletionThreshold },
+        });
+
+        if (usersToDelete.length === 0) {
+            console.log("No users to delete");
+            return;
+        }
+
+        // Delete each user
+        for (const user of usersToDelete) {
+            await User.deleteOne({ _id: user._id });
+            console.log(`Deleted user: ${user.email}`);
+        }
+        console.log(`${usersToDelete.length} user(s) deleted.`);
+    } catch (error) {
+        console.log("Error in autoDeleteUsers", error)
+
+    }
+
+}
+
 
 
 export {
@@ -530,5 +663,7 @@ export {
     refreshAccessToken,
     resetPassword,
     forgotPassword,
-    deleteUser
+    requestAccountDeletion,
+    cancelAccountDeletion,
+    autoDeleteUsers,
 }

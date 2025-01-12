@@ -1,5 +1,5 @@
 const verifyOtpText = (otp) => {
-    return `
+  return `
 <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); background-color: #f9fdf9;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Recycling Logo" style="width: 80px;"/>
@@ -22,7 +22,7 @@ const verifyOtpText = (otp) => {
 }
 
 const WelcomeText = () => {
-    return `
+  return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9fdf9;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Recycling Logo" style="width: 80px;"/>
@@ -35,9 +35,9 @@ const WelcomeText = () => {
 }
 
 const verifyOtpTextWithIP = (otp, userLocationData) => {
-    const { ip, city, region, country, loc, org } = userLocationData;
+  const { ip, city, region, country, loc, org } = userLocationData;
 
-    return `
+  return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); background-color: #f9fdf9;">
         <div style="text-align: center; margin-bottom: 20px;">
             <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Recycling Logo" style="width: 80px;"/>
@@ -69,9 +69,9 @@ const verifyOtpTextWithIP = (otp, userLocationData) => {
 }
 
 const forgotPasswordEmail = (resetLink, otp, userLocationData) => {
-    const { city, region, country, ip, timezone } = userLocationData;
+  const { city, region, country, ip, timezone } = userLocationData;
 
-    return `
+  return `
   <div style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 8px; background-color: #f9fdf9; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
     <div style="text-align: center; margin-bottom: 20px;">
       <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Scrap Dai Logo" style="width: 60px;"/>
@@ -115,9 +115,45 @@ const forgotPasswordEmail = (resetLink, otp, userLocationData) => {
 };
 
 
+const accountDeletionEmail = (cancelLink, cancellationExpiry) => {
+  return `
+    <div style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 8px; background-color: #f9fdf9; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Scrap Dai Logo" style="width: 60px;"/>
+      </div>
+      <h2 style="text-align: center; color: #4CAF50;">Account Deletion Request</h2>
+      <p style="font-size: 16px; text-align: center;">
+        You have requested to delete your account. If you change your mind, click the link below to cancel the request. This link is valid for 
+        <span style="font-weight: bold; color: #4CAF50;">${cancellationExpiry}</span>.
+      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${cancelLink}" target="_blank" style="
+          display: inline-block; 
+          background-color: #4CAF50; 
+          color: #fff; 
+          text-decoration: none; 
+          padding: 12px 24px; 
+          font-size: 16px; 
+          border-radius: 5px; 
+          font-weight: bold;
+        ">
+          Cancel Deletion Request
+        </a>
+      </div>
+      <p style="font-size: 14px; text-align: center;">
+        After <span style="font-weight: bold; color: #4CAF50;">${cancellationExpiry}</span>, your account will be permanently deleted.
+      </p>
+      <p style="color: #888; font-size: 14px; text-align: center; margin-top: 20px;">
+        Thank you for using Scrap Dai! If you have any concerns, feel free to contact us.
+      </p>
+    </div>
+  `;
+};
+
 export {
-    verifyOtpText,
-    WelcomeText,
-    verifyOtpTextWithIP,
-    forgotPasswordEmail
+  verifyOtpText,
+  WelcomeText,
+  verifyOtpTextWithIP,
+  forgotPasswordEmail,
+  accountDeletionEmail
 }

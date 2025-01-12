@@ -23,6 +23,7 @@ app.use(cookieParser())
 // Router import 
 import healthcheckRouter from "./routes/healthcheck.routes.js"
 import userRouter from "./routes/user.routes.js"
+import TaskScheduler from "./utils/TaskScheduler.js"
 
 
 
@@ -31,6 +32,8 @@ import userRouter from "./routes/user.routes.js"
 app.use("/api/v1/healthcheck", healthcheckRouter)
 app.use("/api/v1/user", userRouter)
 
+
+TaskScheduler();
 
 
 
