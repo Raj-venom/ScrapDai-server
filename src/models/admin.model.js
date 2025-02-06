@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import Jwt from "jsonwebtoken";
+import { USER_ROLE } from "../constants";
 
 
 const adminSchema = new mongoose.Schema({
@@ -13,7 +14,14 @@ const adminSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        default: "admin"
+        default: USER_ROLE.ADMIN
+    },
+    phone: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        index: true
     },
     password: {
         type: String,
@@ -60,7 +68,7 @@ adminSchema.methods.generateAccessToken = function () {
 
     return Jwt.sign(
         {
-            _id: this._id, 
+            _id: this._id,
             email: this.email,
             role: this.role,
             fullName: this.fullName,
