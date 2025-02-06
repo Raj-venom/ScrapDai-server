@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { GENDER } from "../constants.js";
+import { GENDER, USER_ROLE } from "../constants.js";
 
 
 const userSchema = new mongoose.Schema(
@@ -88,6 +88,10 @@ const userSchema = new mongoose.Schema(
         cancelDeletionToken: {
             type: String,
             default: null
+        },
+        role: {
+            type: String,
+            default: USER_ROLE.USER
         }
 
     },

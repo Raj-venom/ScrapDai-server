@@ -8,6 +8,15 @@ const generateOtp = () => {
     return { otp, otpExpiry };
 };
 
+// using crypto module to generate random 8 character password
+const randomPasswordGenerator = () => {
+    const password = crypto.randomBytes(4).toString('hex');
+    return password;
+}
+
+
+
+
 const sendEmail = async (email, { subject, text, body }) => {
 
     try {
@@ -66,5 +75,6 @@ export {
     generateOtp,
     sendEmail,
     cookieOptions,
-    validateEmail
+    validateEmail,
+    randomPasswordGenerator
 }

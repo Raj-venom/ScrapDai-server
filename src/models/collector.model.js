@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { USER_ROLE } from "../constants";
 
 const collectorSchema = new mongoose.Schema({
     email: {
@@ -34,21 +35,21 @@ const collectorSchema = new mongoose.Schema({
         default: "https://static.vecteezy.com/system/resources/thumbnails/002/318/271/small_2x/user-profile-icon-free-vector.jpg"
     },
     current_address: {
-        type: {
-            type: String,
-            enum: ["Point"],
-            required: true
-        },
-        coordinates: {
-            type: [Number],
-            required: true
-        },
-        index: "2dsphere" 
-
+        type: String,
+        required: true,
+        trim: true
     },
     refreshToken: {
         type: String
     },
+    firstLogin: {
+        type: Boolean,
+        default: true
+    },
+    role: {
+        type: String,
+        default: USER_ROLE.COLLECTOR
+    }
 },
     {
         timestamps: true,
