@@ -45,7 +45,7 @@ const addNewCategory = asyncHandler(async (req, res) => {
     const category = await Category.create({
         name,
         description,
-        image
+        image: image.url
     })
 
     if (!category) {
@@ -149,3 +149,12 @@ const getSingleCategory = asyncHandler(async (req, res) => {
 
 
 })
+
+
+
+export { 
+    addNewCategory,
+    getAllCategories,
+    getSingleCategory
+
+}
