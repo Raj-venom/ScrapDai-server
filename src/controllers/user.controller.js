@@ -478,17 +478,14 @@ const forgotPassword = asyncHandler(async (req, res) => {
 const updateUserProfile = asyncHandler(async (req, res) => {
 
 
-    const avatarLocalPath = req.file?.path
-    console.log("avatarlocalpath", avatarLocalPath)
+    // const avatarLocalPath = req.file?.path
 
     // const avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : undefined
 
-    let avatar;
-    if (avatarLocalPath) {
-        avatar = await uploadOnCloudinary(avatarLocalPath)
-    }
-
-    console.log(avatar, "avatar")
+    // let avatar;
+    // if (avatarLocalPath) {
+    //     avatar = await uploadOnCloudinary(avatarLocalPath)
+    // }
 
     const { fullName, phone, gender } = req.body
 
@@ -511,11 +508,11 @@ const updateUserProfile = asyncHandler(async (req, res) => {
                 fullName: fullName.trim(),
                 phone: phone.trim(),
                 gender: gender?.trim(),
-                avatar: avatar?.url || req.user?.avatar
+                // avatar: avatar?.url || req.user?.avatar
             }
         },
         { new: true }
-    ).select("-password -refreshToken -otp -otpExpiry")
+    ).select("-password -refreshToken -otp -otpExpiry -deletionRequested -deletionRequestDate -cancelDeletionToken")
 
     if (!updatedUser) {
         throw new ApiError(500, "Something went wrong while updating the user")

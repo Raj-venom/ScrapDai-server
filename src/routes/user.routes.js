@@ -34,6 +34,6 @@ router.route("/cancel-account-deletion/:cancelToken?").post(cancelAccountDeletio
 router.route("/current-user").get(verifyJWT, getCurrentUser)
 
 // patch
-router.route("/update-profile").patch(verifyJWT, upload.single("avatar"), updateUserProfile)
+router.route("/update-profile").patch(verifyJWT, updateUserProfile)
 
 export default router 

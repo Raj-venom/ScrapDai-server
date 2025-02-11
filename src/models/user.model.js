@@ -122,7 +122,9 @@ userSchema.methods.generateAccessToken = function () {
             email: this.email,
             fullName: this.fullName,
             phone: this.phone,
-            current_address: this.current_address
+            current_address: this.current_address,
+            role: this.role,
+            avatar: this.avatar
 
         },
 
