@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import { randomPasswordGenerator, sendEmail, validateEmail } from "../utils/Helper.js";
+import { cookieOptions, randomPasswordGenerator, sendEmail, validateEmail } from "../utils/Helper.js";
 import { Collector } from "../models/collector.model.js";
 
 
@@ -75,7 +75,7 @@ const registerCollector = asyncHandler(async (req, res) => {
     const subject = "Collector Registration"
     const text = `Hello ${fullName}, your account has been created successfully. Your password is ${password}. Please login to your account and change your password.`
 
-    const body = `<p>Hello ${fullName},</p> <p>Your account has been created successfully. Your password is <strong>${password}</strong>. Please login to your account and change your password.</p>`
+    const body = `<p>Hello ${fullName},</p> <p>Your account has been created successfully. Your Email is <strong>${email}</strong> and your password is <strong>${password}</strong>. Please login to your account and change your password.</p>`
 
     sendEmail(email, { subject, text, body })
 
@@ -105,11 +105,15 @@ const loginCollector = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid credentials")
     }
 
+    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(collector._id)
     if (collector.firstLogin) {
-        return res.status(200).json(new ApiResponse(200, collector, "First time login detected please change your password"))
+        collector.password = undefined
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, cookieOptions)
+            .json(new ApiResponse(200, collector, "First time login detected please change your password"))
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(collector._id)
 
     const loggedInCollector = await Collector.findById(collector._id).select("-password -refreshToken")
 
@@ -185,6 +189,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     }
 
     collector.password = newPassword
+    collector.firstLogin = false
     await collector.save()
 
     return res
@@ -206,10 +211,21 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 })
 
 
+const getAllCollectors = asyncHandler(async (req, res) => {
+
+    const collectors = await Collector.find({}).select("-password -refreshToken")
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, collectors, "Collectors fetched successfully"))
+
+})
+
 export {
     registerCollector,
     loginCollector,
     logoutCollector,
     changeCurrentPassword,
-    getCurrentUser
+    getCurrentUser,
+    getAllCollectors
 }

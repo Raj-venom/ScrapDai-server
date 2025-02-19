@@ -18,7 +18,7 @@ const addNewCategory = asyncHandler(async (req, res) => {
 
     // TODO: check if admin is requesting or not
     const { name, description } = req.body
-    const categoryImage = req.file?.path
+    const categoryImageLocalPath = req.file?.path
 
     if (
         [name, description].some((field) => field?.trim() === "" || field?.trim() == undefined)
@@ -26,7 +26,7 @@ const addNewCategory = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All field are required")
     }
 
-    if (!categoryImage) {
+    if (!categoryImageLocalPath) {
         throw new ApiError(400, "Category image is required")
     }
 
@@ -36,7 +36,7 @@ const addNewCategory = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Category with this name already exists")
     }
 
-    const image = await uploadOnCloudinary(categoryImage)
+    const image = await uploadOnCloudinary(categoryImageLocalPath)
 
     if (!image.url) {
         throw new ApiError(500, "Something went wrong while uploading image")

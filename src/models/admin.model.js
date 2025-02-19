@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import Jwt from "jsonwebtoken";
-import { USER_ROLE } from "../constants";
+import { USER_ROLE } from "../constants.js";
 
 
 const adminSchema = new mongoose.Schema({
@@ -51,11 +51,7 @@ const adminSchema = new mongoose.Schema({
 adminSchema.pre("save", async function (next) {
 
     if (!this.isModified("password")) return (next())
-
     this.password = await bcrypt.hash(this.password, 10)
-
-    this.lastFivePasswords.push(this.password)
-
     next()
 })
 
@@ -72,6 +68,7 @@ adminSchema.methods.generateAccessToken = function () {
             email: this.email,
             role: this.role,
             fullName: this.fullName,
+            role: this.role
         },
 
         process.env.ACCESS_TOKEN_SECRET,

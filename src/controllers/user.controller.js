@@ -647,6 +647,17 @@ const autoDeleteUsers = async (req, res) => {
 
 }
 
+const getAllUsers = asyncHandler(async (req, res) => {
+
+    // TODO: Add pagination
+
+    const users = await User.find({}).select("-password -refreshToken -otp -otpExpiry")
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, users, "Users fetched successfully"))
+
+})
 
 
 export {
@@ -663,4 +674,5 @@ export {
     requestAccountDeletion,
     cancelAccountDeletion,
     autoDeleteUsers,
+    getAllUsers
 }

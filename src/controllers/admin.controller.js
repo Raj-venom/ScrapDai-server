@@ -1,21 +1,21 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import { randomPasswordGenerator, sendEmail, validateEmail } from "../utils/Helper.js";
+import { randomPasswordGenerator, sendEmail, validateEmail, cookieOptions } from "../utils/Helper.js";
 import { Admin } from "../models/admin.model.js";
 
 
 const generateAccessAndRefereshTokens = async (userId) => {
     try {
-        const collector = await Collector.findById(userId)
-        if (!collector) {
-            throw new ApiError(404, "collector not found")
+        const admin = await Admin.findById(userId)
+        if (!admin) {
+            throw new ApiError(404, "admin not found")
         }
-        const accessToken = collector.generateAccessToken()
-        const refreshToken = collector.generateRefreshToken()
+        const accessToken = admin.generateAccessToken()
+        const refreshToken = admin.generateRefreshToken()
 
-        collector.refreshToken = refreshToken
-        await collector.save({ validateBeforeSave: false })
+        admin.refreshToken = refreshToken
+        await admin.save({ validateBeforeSave: false })
 
         return { accessToken, refreshToken }
 
@@ -36,7 +36,7 @@ const registerAdmin = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All field are required")
     }
 
-    if (phone.length !== 10) {
+    if (phone?.length !== 10) {
         throw new ApiError(400, "Phone number must be 10 digits")
     }
 
@@ -60,7 +60,6 @@ const registerAdmin = asyncHandler(async (req, res) => {
         fullName,
         email,
         phone,
-        current_address,
         password
     })
 
@@ -158,15 +157,15 @@ const logoutAdmin = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
 
-    const { oldPassword, newPassword } = req.body
+    const { currentPassword, newPassword } = req.body
 
     if (
-        [oldPassword, newPassword].some((field) => field === "" || field?.trim() == undefined)
+        [currentPassword, newPassword].some((field) => field === "" || field?.trim() == undefined)
     ) {
         throw new ApiError(400, "Both Old Password and new password is required")
     }
 
-    if (oldPassword === newPassword) {
+    if (currentPassword === newPassword) {
         throw new ApiError(400, "Old password and new password must be different")
     }
 
@@ -176,7 +175,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Admin not found")
     }
 
-    const isPasswordCorrect = await admin.isPasswordCorrect(oldPassword)
+    const isPasswordCorrect = await admin.isPasswordCorrect(currentPassword)
 
     if (!isPasswordCorrect) {
         throw new ApiError(400, "Invalid old password")

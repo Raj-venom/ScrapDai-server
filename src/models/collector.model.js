@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { USER_ROLE } from "../constants";
+import { USER_ROLE } from "../constants.js";
 
 const collectorSchema = new mongoose.Schema({
     email: {
@@ -79,7 +79,8 @@ collectorSchema.methods.generateAccessToken = function () {
             email: this.email,
             fullName: this.fullName,
             phone: this.phone,
-            current_address: this.current_address
+            current_address: this.current_address,
+            role: this.role
 
         },
 

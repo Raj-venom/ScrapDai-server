@@ -49,13 +49,9 @@ const userSchema = new mongoose.Schema(
         },
 
         current_address: {
-            type: {
-                type: String,
-                enum: ["Point"],
-            },
-            coordinates: {
-                type: [Number],
-            },
+            type: String,
+            // required: true,
+            trim: true
         },
 
         otp: {

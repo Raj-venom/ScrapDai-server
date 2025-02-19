@@ -9,10 +9,14 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 const addNewScrap = asyncHandler(async (req, res) => {
 
     const { name, description, pricePerKg, category } = req.body;
-    const scrapImage = req.file?.path;
+    const scrapImageLocalPath = req.file?.path;
 
     if (!name || !description || !pricePerKg || !category) {
         throw new ApiError(400, "All fields are required")
+    }
+
+    if (!scrapImageLocalPath) {
+        throw new ApiError(400, "Scrap image is required")
     }
 
     const isValidObjectId = mongoose.Types.ObjectId.isValid(category)
@@ -27,7 +31,7 @@ const addNewScrap = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Scrap with this name already exists in this category")
     }
 
-    const image = await uploadOnCloudinary(scrapImage)
+    const image = await uploadOnCloudinary(scrapImageLocalPath)
 
     if (!image.url) {
         throw new ApiError(500, "Something went wrong while uploading image")
