@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { Category } from "../models/category.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import mongoose from "mongoose";
+import slugify from "slugify";
 
 
 
@@ -42,10 +43,13 @@ const addNewCategory = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Something went wrong while uploading image")
     }
 
+    const slug = slugify(name, { lower: true, strict: true })
+
     const category = await Category.create({
         name,
         description,
-        image: image.url
+        image: image.url,
+        slug
     })
 
     if (!category) {
@@ -152,7 +156,7 @@ const getSingleCategory = asyncHandler(async (req, res) => {
 
 
 
-export { 
+export {
     addNewCategory,
     getAllCategories,
     getSingleCategory

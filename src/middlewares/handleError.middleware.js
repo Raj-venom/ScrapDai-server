@@ -31,11 +31,20 @@ export const handleError = (err, req, res, next) => {
         return res.status(400).json({
             success: false,
             message: 'Duplicate key error',
-            errors: err.keyValue 
+            errors: err.keyValue
         });
     }
 
-    if(err.errors){
+    // MulterError
+    if (err.name === 'MulterError') {
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+            errors: err
+        });
+    }
+
+    if (err.errors) {
         return res.status(400).json({
             success: false,
             message: err.errors[Object.keys(err.errors)[0]].message,
@@ -51,7 +60,7 @@ export const handleError = (err, req, res, next) => {
         });
     }
 
-    if(err.errors){
+    if (err.errors) {
         return res.status(400).json({
             success: false,
             message: err.errors[Object.keys(err.errors)[0]].message,

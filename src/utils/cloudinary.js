@@ -47,7 +47,10 @@ const deleteFromCloudinary = async (cloudinaryPublicUrl) => {
         const imageFullName = urlArray[(urlArray.length) - 1]
         const imageName = imageFullName.split(".")[0]
 
-        const response = await cloudinary.uploader.destroy(imageName)
+        const response = await cloudinary.uploader.destroy(imageName,{
+            resource_type: "image",
+            folder: "scrapDai"
+        })
 
         return response.result
 

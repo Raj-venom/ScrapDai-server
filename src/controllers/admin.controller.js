@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import { randomPasswordGenerator, sendEmail, validateEmail, cookieOptions } from "../utils/Helper.js";
+import { randomPasswordGenerator, sendEmail, validateEmail, cookieOptions, clearCookieOptions } from "../utils/Helper.js";
 import { Admin } from "../models/admin.model.js";
 
 
@@ -148,8 +148,8 @@ const logoutAdmin = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .clearCookie("accessToken", cookieOptions)
-        .clearCookie("refreshToken", cookieOptions)
+        .clearCookie("accessToken", clearCookieOptions)
+        .clearCookie("refreshToken", clearCookieOptions)
         .json(new ApiResponse(200, {}, "User logged Out"))
 
 

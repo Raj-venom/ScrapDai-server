@@ -62,6 +62,13 @@ const cookieOptions = {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
+    expires: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), 
+}
+
+const clearCookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
 }
 
 
@@ -75,6 +82,7 @@ export {
     generateOtp,
     sendEmail,
     cookieOptions,
+    clearCookieOptions,
     validateEmail,
     randomPasswordGenerator
 }

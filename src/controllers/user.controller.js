@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.model.js"
 import jwt from "jsonwebtoken";
-import { generateOtp, sendEmail, cookieOptions, validateEmail } from "../utils/Helper.js";
+import { generateOtp, sendEmail, cookieOptions, validateEmail, clearCookieOptions } from "../utils/Helper.js";
 import { accountDeletionEmail, forgotPasswordEmail, verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
 import { GENDER } from "../constants.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
@@ -266,8 +266,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .clearCookie("accessToken", cookieOptions)
-        .clearCookie("refreshToken", cookieOptions)
+        .clearCookie("accessToken", clearCookieOptions)
+        .clearCookie("refreshToken", clearCookieOptions)
         .json(new ApiResponse(200, {}, "User logged Out"))
 
 })
