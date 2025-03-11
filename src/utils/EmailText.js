@@ -150,10 +150,40 @@ const accountDeletionEmail = (cancelLink, cancellationExpiry) => {
   `;
 };
 
+const orderConfirmationEmail = (order, userName) => {
+  return `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9fdf9;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Recycling Logo" style="width: 80px;"/>
+        </div>
+
+        <h2 style="color: #4CAF50; text-align: center;">Order Confirmation</h2>
+        <p style="font-size: 16px;">Hello, <strong>${userName || "Customer"}</strong></p>
+        <p style="font-size: 16px;">Thank you for placing your scrap collection order with <strong>Scrap Dai</strong>. Below are your order details:</p>
+        
+        <div style="background-color: #e6ffe6; padding: 15px; border-radius: 8px; border: 1px solid #4CAF50;">
+            <p style="font-size: 16px;"><strong>Order ID:</strong> ${order._id}</p>
+            <p style="font-size: 16px;"><strong>Pickup Address:</strong> ${order.pickupAddress.formattedAddress}</p>
+            <p style="font-size: 16px;"><strong>Pickup Date:</strong> ${new Date(order.pickUpDate).toLocaleDateString()}</p>
+            <p style="font-size: 16px;"><strong>Status:</strong> <span style="color: #4CAF50;">${order.status}</span></p>
+        </div>
+
+        <p style="font-size: 16px; text-align: center; margin-top: 20px;">A collector will be assigned soon. Stay tuned!</p>
+        
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 14px; color: #888;">
+            <p>Thank you for contributing to a cleaner, greener planet!</p>
+            <p><strong>Scrap Dai Team</strong></p>
+        </div>
+    </div>
+  `;
+};
+
+
 export {
   verifyOtpText,
   WelcomeText,
   verifyOtpTextWithIP,
   forgotPasswordEmail,
-  accountDeletionEmail
+  accountDeletionEmail,
+  orderConfirmationEmail
 }

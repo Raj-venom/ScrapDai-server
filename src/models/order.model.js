@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ORDER_STATUS } from "../constants";
 
 const orderItemSchema = new mongoose.Schema(
     {
@@ -8,11 +9,11 @@ const orderItemSchema = new mongoose.Schema(
         },
         weight: {
             type: Number,
-            required: true,
+            required: null,
         },
         amount: {
             type: Number,
-            required: true,
+            required: null,
         },
     }
 );
@@ -22,22 +23,26 @@ const orderSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        required: true
     },
     collector: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Collector",
+        default: null
     },
     pickupAddress: {
-        type: {
+        formattedAddress: {
             type: String,
-            enum: ["Point"],
             required: true
         },
-        coordinates: {
-            type: [Number],
+        latitude: {
+            type: Number,
             required: true
         },
-        index: "2dsphere",
+        longitude: {
+            type: Number,
+            required: true
+        }
     },
     pickUpDate: {
         type: Date,
@@ -45,12 +50,16 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["PENDING", "CANCELLED", "DELIVERED"],
-        default: "PENDING"
+        enum: Object.values(ORDER_STATUS),
+        default: ORDER_STATUS.PENDING,
+    },
+    estimatedAmount: {
+        type: Number,
+        required: true
     },
     totalAmount: {
         type: Number,
-        required: true
+        required: null
     },
     orderItem: {
         type: [orderItemSchema]
@@ -58,6 +67,7 @@ const orderSchema = new mongoose.Schema({
     feedback: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Feedback",
+        default: null
     },
     scrapImage: [
         {

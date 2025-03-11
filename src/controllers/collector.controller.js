@@ -221,11 +221,53 @@ const getAllCollectors = asyncHandler(async (req, res) => {
 
 })
 
+
+const refereshAccessToken = asyncHandler(async (req, res) => {
+
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
+    try {
+
+        const decoded = jwt.verify(incomingRefreshToken, process.env.JWT_SECRET)
+
+        const collector = await Collector.findById(decoded.id)
+
+        if (!collector) {
+            throw new ApiError(404, "Collector not found")
+        }
+
+        if (collector.refreshToken !== incomingRefreshToken) {
+            throw new ApiError(401, "Invalid refresh token")
+        }
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(collector._id)
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, cookieOptions)
+            .cookie("refreshToken", newRefreshToken, cookieOptions)
+            .json(
+                new ApiResponse(
+                    200,
+                    { accessToken, refreshToken: newRefreshToken },
+                    "Access token refreshed successfully"
+                )
+            )
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+
+})
+
 export {
     registerCollector,
     loginCollector,
     logoutCollector,
     changeCurrentPassword,
     getCurrentUser,
-    getAllCollectors
+    getAllCollectors,
+    refereshAccessToken
 }

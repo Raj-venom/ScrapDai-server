@@ -63,8 +63,8 @@ const verifyAuthourization = (requiredRole) => asyncHandler(async (req, res, nex
         const user = await getUserRole(decodedToken?.role, decodedToken?._id);
 
         if (!user) {
-            // throw new ApiError(401, "Invalid Access Token");
-            throw new ApiError(403, "Forbidden: Insufficient permissions");
+            throw new ApiError(401, "Invalid Access Token");
+            // throw new ApiError(403, "Forbidden: Insufficient permissions");
         }
 
         if (requiredRole && requiredRole !== user.role) {

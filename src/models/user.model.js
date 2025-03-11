@@ -96,7 +96,7 @@ const userSchema = new mongoose.Schema(
     }
 )
 
-userSchema.index({ current_address: "2dsphere" })
+// userSchema.index({ current_address: "2dsphere" })
 
 userSchema.pre("save", async function (next) {
 
