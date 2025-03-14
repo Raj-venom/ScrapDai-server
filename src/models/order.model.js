@@ -3,7 +3,7 @@ import { ORDER_STATUS } from "../constants";
 
 const orderItemSchema = new mongoose.Schema(
     {
-        scrapId: {
+        scrap: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Scrap",
         },
