@@ -7,7 +7,8 @@ import {
     acceptOrder,
     completeOrder,
     cancelOrder,
-    getCollectorsPendingOrders
+    getCollectorsPendingOrders,
+    placeOrder
 
 } from '../controllers/order.controller.js';
 
@@ -21,7 +22,7 @@ const router = Router();
 // POST
 router.route('/')
     .post(
-        verifyAuthourization([USER_ROLE.USER]),
+        verifyAuthourization(USER_ROLE.USER),
         upload.fields(
             [
                 {
@@ -34,15 +35,22 @@ router.route('/')
 
     );
 
+router.route('/place-order').post(verifyAuthourization(USER_ROLE.USER), placeOrder);
+
 
 // GET
-router.route('/my-orders').get(verifyAuthourization([USER_ROLE.USER]), getMyOrders);
-router.route('/unassigned-orders').get(verifyAuthourization([USER_ROLE.COLLECTOR]), getUnassignedOrders);
-router.route('/collector-orders').get(verifyAuthourization([USER_ROLE.COLLECTOR]), getCollectorsPendingOrders);
+router.route('/my-orders').get(verifyAuthourization(USER_ROLE.USER), getMyOrders);
+
+router.route('/unassigned-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getUnassignedOrders);
+router.route('/collector-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getCollectorsPendingOrders);
 router.route('/:id').get(getOderById);
 
 
 // patch
-router.route('/:id/complete').patch(verifyAuthourization([USER_ROLE.COLLECTOR]), completeOrder);
-router.route('/:id/cancel').patch(verifyAuthourization([USER_ROLE.USER]), cancelOrder);
-router.route('/:id/accept').patch(verifyAuthourization([USER_ROLE.COLLECTOR]), acceptOrder);
+router.route('/:id/complete').patch(verifyAuthourization(USER_ROLE.COLLECTOR), completeOrder);
+router.route('/:id/accept').patch(verifyAuthourization(USER_ROLE.COLLECTOR), acceptOrder);
+
+router.route('/:id/cancel').patch(verifyAuthourization(USER_ROLE.USER), cancelOrder);
+
+
+export default router;

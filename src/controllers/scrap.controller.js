@@ -129,7 +129,6 @@ const getScrapById = asyncHandler(async (req, res) => {
 
 const getAllScraps = asyncHandler(async (req, res) => {
 
-    // i only need name and slug of category schema
     const scraps = await Scrap.find().populate("category", "name slug")
 
     if (!scraps) {

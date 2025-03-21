@@ -75,7 +75,7 @@ const verifyAuthourization = (requiredRole) => asyncHandler(async (req, res, nex
         next();
 
     } catch (error) {
-        throw new ApiError(401, "Invalid Access Token");
+        throw new ApiError(error.statusCode || 401, error.message || "Unauthorized request");
     }
 });
 

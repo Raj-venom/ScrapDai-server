@@ -12,16 +12,28 @@ import { ORDER_STATUS } from "../constants.js";
 
 const createOrder = asyncHandler(async (req, res) => {
 
-    const { pickupAddress, pickUpDate, orderItems, estimatedAmount } = req.body;
+    const {pickUpDate, estimatedAmount } = req.body;
     const scrapImageLocalPaths = req.files["scrapImages"];
+    const orderItems = JSON.parse(req.body.orderItems);
+    const pickupAddress = JSON.parse(req.body.pickupAddress);
 
-    if ([pickupAddress, pickUpDate, estimatedAmount].some((field) => field == undefined)) {
+
+    // let scrapImageLocalPaths;
+
+    // console.log(req.files)
+    // console.log(req.body)
+
+    console.log(pickupAddress)
+
+    if ([pickUpDate, estimatedAmount].some((field) => field == undefined)) {
         throw new ApiError(400, "All fields are required")
     }
 
     if (!Array.isArray(orderItems) || orderItems.length == 0) {
+        console.log(orderItems.length)
         throw new ApiError(400, "Order items are required")
     }
+    // throw new ApiError(400, "Order items are required222")
 
     if (!scrapImageLocalPaths) {
         throw new ApiError(400, "Scrap images are required")
@@ -274,6 +286,49 @@ const getCollectorsPendingOrders = asyncHandler(async (req, res) => {
 });
 
 
+
+const placeOrder = asyncHandler(async (req, res) => {
+
+    const { pickupAddress, pickUpDate, orderItems, estimatedAmount, scrapImagesUrls } = req.body;
+
+
+    // pickupAdresss: {formattedAddress, latitude, longitude}
+    // orderItems: [{scrap, weight, amount}]
+    // scrapImagesUrls: [url1, url2, url3]
+    // pickUpDate: Date
+    // estimatedAmount: Number
+
+    if (!pickUpDate || !estimatedAmount || !orderItems || !scrapImagesUrls, !pickupAddress) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    if (!Array.isArray(orderItems) || orderItems.length == 0) {
+        throw new ApiError(400, "Order items are required")
+    }
+
+    const order = await Order.create({
+        user: req.user._id,
+        pickupAddress,
+        pickUpDate,
+        orderItem: orderItems,
+        estimatedAmount,
+        scrapImage: scrapImagesUrls
+    })
+
+    if (!order) {
+        throw new ApiError(500, "Something went wrong while creating order")
+    }
+
+    return res
+        .status(201)
+        .json(new ApiResponse(201, order, "Order created successfully"));
+
+
+
+
+});
+
+
 export {
     createOrder,
     getMyOrders,
@@ -282,5 +337,6 @@ export {
     acceptOrder,
     completeOrder,
     cancelOrder,
-    getCollectorsPendingOrders
+    getCollectorsPendingOrders,
+    placeOrder
 }
