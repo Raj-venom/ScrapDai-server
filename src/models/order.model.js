@@ -75,6 +75,10 @@ const orderSchema = new mongoose.Schema({
             required: true
         }
     ],
+    pickUpTime: {
+        type: String,
+        required: true
+    },
 
 
 }, { timestamps: true });

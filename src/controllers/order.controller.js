@@ -12,7 +12,7 @@ import { ORDER_STATUS } from "../constants.js";
 
 const createOrder = asyncHandler(async (req, res) => {
 
-    const {pickUpDate, estimatedAmount } = req.body;
+    const { pickUpDate, estimatedAmount, pickUpTime } = req.body;
     const scrapImageLocalPaths = req.files["scrapImages"];
     const orderItems = JSON.parse(req.body.orderItems);
     const pickupAddress = JSON.parse(req.body.pickupAddress);
@@ -25,7 +25,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
     console.log(pickupAddress)
 
-    if ([pickUpDate, estimatedAmount].some((field) => field == undefined)) {
+    if ([pickUpDate, estimatedAmount, pickUpTime].some((field) => field == undefined)) {
         throw new ApiError(400, "All fields are required")
     }
 
@@ -53,7 +53,8 @@ const createOrder = asyncHandler(async (req, res) => {
         pickUpDate,
         orderItem: orderItems,
         estimatedAmount,
-        scrapImage: scrapImagesUrls
+        scrapImage: scrapImagesUrls,
+        pickUpTime
     })
 
     if (!order) {
@@ -63,6 +64,8 @@ const createOrder = asyncHandler(async (req, res) => {
     res
         .status(201)
         .json(new ApiResponse(201, order, "Order created successfully"));
+
+        console.log(order)
 
     sendEmail(req.user.email, {
         subject: "Order Confirmation",
