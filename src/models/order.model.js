@@ -79,7 +79,27 @@ const orderSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-
+    contactNumber: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    timeline: [
+        {
+            date: {
+                type: Date,
+                required: true
+            },
+            time: {
+                type: String,
+                required: true
+            },
+            message: {
+                type: String,
+                required: true
+            }
+        }
+    ]
 
 }, { timestamps: true });
 

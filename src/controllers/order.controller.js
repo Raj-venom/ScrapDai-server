@@ -3,37 +3,33 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { Order } from "../models/order.model.js";
-import mongoose from "mongoose";
 import { sendEmail } from "../utils/Helper.js";
 import { orderConfirmationEmail } from "../utils/EmailText.js";
-import { ORDER_STATUS } from "../constants.js";
+import { ORDER_STATUS, TIME_LINE_MESSAGES } from "../constants.js";
 
 
 
 const createOrder = asyncHandler(async (req, res) => {
 
-    const { pickUpDate, estimatedAmount, pickUpTime } = req.body;
+    const { pickUpDate, estimatedAmount, pickUpTime, contactNumber } = req.body;
     const scrapImageLocalPaths = req.files["scrapImages"];
     const orderItems = JSON.parse(req.body.orderItems);
     const pickupAddress = JSON.parse(req.body.pickupAddress);
 
 
-    // let scrapImageLocalPaths;
-
-    // console.log(req.files)
-    // console.log(req.body)
-
-    console.log(pickupAddress)
 
     if ([pickUpDate, estimatedAmount, pickUpTime].some((field) => field == undefined)) {
         throw new ApiError(400, "All fields are required")
+    }
+
+    if (contactNumber.length !== 10) {
+        throw new ApiError(400, "Invalid contact number")
     }
 
     if (!Array.isArray(orderItems) || orderItems.length == 0) {
         console.log(orderItems.length)
         throw new ApiError(400, "Order items are required")
     }
-    // throw new ApiError(400, "Order items are required222")
 
     if (!scrapImageLocalPaths) {
         throw new ApiError(400, "Scrap images are required")
@@ -46,6 +42,14 @@ const createOrder = asyncHandler(async (req, res) => {
         scrapImagesUrls.push(image?.url)
     }
 
+    const timeline = [
+        {
+            date: new Date(),
+            time: new Date().toLocaleTimeString(),
+            message: TIME_LINE_MESSAGES.ORDER_CREATED
+        }
+    ]
+
 
     const order = await Order.create({
         user: req.user?._id,
@@ -54,7 +58,9 @@ const createOrder = asyncHandler(async (req, res) => {
         orderItem: orderItems,
         estimatedAmount,
         scrapImage: scrapImagesUrls,
-        pickUpTime
+        pickUpTime,
+        contactNumber,
+        timeline
     })
 
     if (!order) {
@@ -64,8 +70,6 @@ const createOrder = asyncHandler(async (req, res) => {
     res
         .status(201)
         .json(new ApiResponse(201, order, "Order created successfully"));
-
-        console.log(order)
 
     sendEmail(req.user.email, {
         subject: "Order Confirmation",
