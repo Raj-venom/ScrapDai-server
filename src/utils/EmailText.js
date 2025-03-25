@@ -178,6 +178,21 @@ const orderConfirmationEmail = (order, userName) => {
   `;
 };
 
+const orderAcceptedEmail = (order, collectorName) => {
+  return `
+  <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9fdf9; text-align: center;">
+      <img src="https://static.vecteezy.com/system/resources/previews/028/671/106/non_2x/recycling-icon-leaf-symbol-design-and-circular-arrow-environmental-concept-in-isolation-on-white-background-free-vector.jpg" alt="Recycling Logo" style="width: 60px;"/>
+      <h2 style="color: #4CAF50;">Order Accepted</h2>
+      <p>Your order has been accepted by <strong>${collectorName}</strong>.</p>
+      <p><strong>Order ID:</strong> ${order._id}</p>
+      <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+      <p><strong>Status:</strong> ${order.status}</p>
+      <p>Thank you for recycling with <strong>Scrap Dai</strong>!</p>
+  </div>
+  `;
+};
+
+
 
 export {
   verifyOtpText,
@@ -185,5 +200,6 @@ export {
   verifyOtpTextWithIP,
   forgotPasswordEmail,
   accountDeletionEmail,
-  orderConfirmationEmail
+  orderConfirmationEmail,
+  orderAcceptedEmail
 }

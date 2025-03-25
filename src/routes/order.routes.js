@@ -2,13 +2,17 @@ import { Router } from 'express';
 import {
     createOrder,
     getMyOrders,
-    getUnassignedOrders,
     getOderById,
     acceptOrder,
     completeOrder,
     cancelOrder,
     getCollectorsPendingOrders,
-    placeOrder
+    placeOrder,
+    getNewOrderRequest,
+    getNearbyOrders,
+    getAllPendingOrders,
+    getHighValueOrders,
+    getOrderScheduledForToday
 
 } from '../controllers/order.controller.js';
 
@@ -41,8 +45,13 @@ router.route('/place-order').post(verifyAuthourization(USER_ROLE.USER), placeOrd
 // GET
 router.route('/my-orders').get(verifyAuthourization(USER_ROLE.USER), getMyOrders);
 
-router.route('/unassigned-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getUnassignedOrders);
+router.route('/new-order-request').get(verifyAuthourization(USER_ROLE.COLLECTOR), getNewOrderRequest);
 router.route('/collector-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getCollectorsPendingOrders);
+router.route('/nearby-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getNearbyOrders);
+router.route('/pending-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getAllPendingOrders);
+router.route('/high-value-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getHighValueOrders);
+router.route('/today-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getOrderScheduledForToday);
+
 router.route('/:id').get(getOderById);
 
 

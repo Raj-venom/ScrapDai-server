@@ -4,7 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { Order } from "../models/order.model.js";
 import { sendEmail } from "../utils/Helper.js";
-import { orderConfirmationEmail } from "../utils/EmailText.js";
+import { orderAcceptedEmail, orderConfirmationEmail } from "../utils/EmailText.js";
 import { ORDER_STATUS, TIME_LINE_MESSAGES } from "../constants.js";
 
 
@@ -98,9 +98,10 @@ const getMyOrders = asyncHandler(async (req, res) => {
 
 });
 
-const getUnassignedOrders = asyncHandler(async (req, res) => {
+const getNewOrderRequest = asyncHandler(async (req, res) => {
 
-    const orders = await Order.find({ status: ORDER_STATUS.PENDING }).populate({ path: "orderItem.scrap", select: "name" });
+
+    const orders = await Order.find({ status: ORDER_STATUS.PENDING }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 }).limit(10);
 
     if (!orders) {
         throw new ApiError(404, "No orders found")
@@ -109,9 +110,6 @@ const getUnassignedOrders = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, orders, "Orders fetched successfully"));
-
-
-
 });
 
 const getOderById = asyncHandler(async (req, res) => {
@@ -142,9 +140,15 @@ const acceptOrder = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Order is already assigned")
     }
 
-    order.status = ORDER_STATUS.ASSIGNED;
+    order.timeline.push({
+        date: new Date(),
+        time: new Date().toLocaleTimeString(),
+        message: TIME_LINE_MESSAGES.ORDER_ACCEPTED
+    })
+
+    order.status = ORDER_STATUS.ACCEPTED;
     order.collector = req.user?._id;
-    const updatedOrder = await order.save();
+    const updatedOrder = await (await order.save()).populate('user', 'email');
 
     if (!updatedOrder) {
         throw new ApiError(500, "Something went wrong while updating order")
@@ -158,13 +162,9 @@ const acceptOrder = asyncHandler(async (req, res) => {
     sendEmail(updatedOrder.user.email, {
         subject: "Order Accepted",
         text: `Your order has been accepted by ${req.user.fullName}. Your order id is ${updatedOrder._id}`,
-        body: ` <h1>Order Accepted</h1>
-        <p>Your order has been accepted by ${req.user.fullName}</p>
-        <p>Your order id is ${updatedOrder._id}</p>
-        <p>Order Date: ${updatedOrder.createdAt}</p>
-        <p>Status: ${updatedOrder.status}</p>
-        `
-    })
+        body: orderAcceptedEmail(updatedOrder, req.user.fullName)
+    });
+
 
     return;
 });
@@ -180,7 +180,7 @@ const completeOrder = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Order not found")
     }
 
-    if (order.status != ORDER_STATUS.ASSIGNED) {
+    if (order.status != ORDER_STATUS.ACCEPTED) {
         throw new ApiError(400, "Order is not assigned yet")
     }
 
@@ -335,15 +335,173 @@ const placeOrder = asyncHandler(async (req, res) => {
 
 });
 
+const getNearbyOrders = asyncHandler(async (req, res) => {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+        throw new ApiError(400, "Latitude and longitude are required");
+    }
+
+    const lat = parseFloat(latitude);
+    const lon = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lon)) {
+        throw new ApiError(400, "Invalid latitude and longitude");
+    }
+
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        throw new ApiError(400, "Coordinates are out of valid range");
+    }
+
+    // Using aggregation pipeline to calculate and filter nearby orders
+    const nearbyOrders = await Order.aggregate([
+        {
+            $match: {
+                status: ORDER_STATUS.PENDING,
+                collector: null
+            }
+        },
+        {
+            $addFields: {
+                distance: {
+                    $multiply: [
+                        6371, // Earth's radius in km
+                        {
+                            $acos: {
+                                $add: [
+                                    {
+                                        $multiply: [
+                                            { $sin: { $degreesToRadians: lat } },
+                                            { $sin: { $degreesToRadians: "$pickupAddress.latitude" } }
+                                        ]
+                                    },
+                                    {
+                                        $multiply: [
+                                            { $cos: { $degreesToRadians: lat } },
+                                            { $cos: { $degreesToRadians: "$pickupAddress.latitude" } },
+                                            {
+                                                $cos: {
+                                                    $subtract: [
+                                                        { $degreesToRadians: "$pickupAddress.longitude" },
+                                                        { $degreesToRadians: lon }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            $match: {
+                distance: { $lte: 5 } // Filter orders within 5 km
+            }
+        },
+        {
+            $sort: { distance: 1 } // Sort by distance ascending
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "user",
+                foreignField: "_id",
+                as: "userDetails"
+            }
+        },
+        {
+            $unwind: "$userDetails"
+        },
+        {
+            $project: {
+                _id: 1,
+                pickupAddress: 1,
+                pickUpDate: 1,
+                status: 1,
+                estimatedAmount: 1,
+                totalAmount: 1,
+                scrapImage: 1,
+                pickUpTime: 1,
+                contactNumber: 1,
+                distance: { $round: ["$distance", 2] },
+                user: {
+                    _id: "$userDetails._id",
+                    name: "$userDetails.name",
+                    avatar: "$userDetails.avatar"
+                }
+            }
+        }
+    ]);
+
+    return res.status(200).json(new ApiResponse(200, nearbyOrders, "Orders fetched successfully"));
+});
+
+
+const getHighValueOrders = asyncHandler(async (req, res) => {
+
+    const highValue = 1000;
+
+    const orders = await Order.find({ status: ORDER_STATUS.PENDING, estimatedAmount: { $gte: highValue } }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 });
+
+    if (!orders) {
+        throw new ApiError(404, "No orders found")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+});
+
+const getAllPendingOrders = asyncHandler(async (req, res) => {
+
+    const orders = await Order.find({ status: ORDER_STATUS.PENDING }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 });
+
+    if (!orders) {
+        throw new ApiError(404, "No orders found")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+});
+
+const getOrderScheduledForToday = asyncHandler(async (req, res) => {
+
+    const orders = await Order.find({
+        collector: req?.user._id,
+        status: ORDER_STATUS.ACCEPTED,
+        pickUpDate: {
+            $gte: new Date(new Date().setHours(0, 0, 0)),
+            $lt: new Date(new Date().setHours(23, 59, 59))
+        }
+
+    }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 });
+
+    if (!orders) {
+        throw new ApiError(404, "No orders found")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+
+});
 
 export {
     createOrder,
     getMyOrders,
-    getUnassignedOrders,
+    getNewOrderRequest,
     getOderById,
     acceptOrder,
     completeOrder,
     cancelOrder,
     getCollectorsPendingOrders,
-    placeOrder
+    placeOrder,
+    getNearbyOrders,
+    getHighValueOrders,
+    getAllPendingOrders,
+    getOrderScheduledForToday
 }
