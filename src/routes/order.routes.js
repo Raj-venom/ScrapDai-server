@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
     createOrder,
     getMyOrders,
-    getOderById,
+    getOrderById,
     acceptOrder,
     completeOrder,
     cancelOrder,
@@ -52,7 +52,7 @@ router.route('/pending-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), g
 router.route('/high-value-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getHighValueOrders);
 router.route('/today-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getOrderScheduledForToday);
 
-router.route('/:id').get(getOderById);
+router.route('/:id').get(getOrderById);
 
 
 // patch

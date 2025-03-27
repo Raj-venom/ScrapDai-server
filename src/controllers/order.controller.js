@@ -101,7 +101,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
 const getNewOrderRequest = asyncHandler(async (req, res) => {
 
 
-    const orders = await Order.find({ status: ORDER_STATUS.PENDING }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 }).limit(10);
+    const orders = await Order.find({ status: ORDER_STATUS.PENDING }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 }).limit(2);
 
     if (!orders) {
         throw new ApiError(404, "No orders found")
@@ -112,9 +112,20 @@ const getNewOrderRequest = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, orders, "Orders fetched successfully"));
 });
 
-const getOderById = asyncHandler(async (req, res) => {
-
-    const order = await Order.findById(req.params.id).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "collector", select: "fullName" }).populate({ path: "user", select: "fullName" });
+const getOrderById = asyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id)
+        .populate({
+            path: "orderItem.scrap",
+            select: "name pricePerKg"
+        })
+        .populate({
+            path: "collector",
+            select: "fullName"
+        })
+        .populate({
+            path: "user",
+            select: "fullName"
+        });
 
     if (!order) {
         throw new ApiError(404, "Order not found")
@@ -123,7 +134,6 @@ const getOderById = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, order, "Order fetched successfully"));
-
 });
 
 const acceptOrder = asyncHandler(async (req, res) => {
@@ -172,7 +182,11 @@ const acceptOrder = asyncHandler(async (req, res) => {
 const completeOrder = asyncHandler(async (req, res) => {
 
     const orderId = req.params.id;
-    const { totalAmount, orderItem } = req.body
+    const { orderItem } = req.body
+
+    if (!Array.isArray(orderItem) || orderItem.length == 0) {
+        throw new ApiError(400, "Order items are required")
+    }
 
     const order = await Order.findById(orderId);
 
@@ -180,12 +194,9 @@ const completeOrder = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Order not found")
     }
 
-    if (order.status != ORDER_STATUS.ACCEPTED) {
-        throw new ApiError(400, "Order is not assigned yet")
-    }
 
-    if (order.collector != req.user._id) {
-        throw new ApiError(403, "You are not authorized to complete this order")
+    if (!order.collector.equals(req.user._id)) {
+        throw new ApiError(403, "You are not authorized to complete this order");
     }
 
     if (order.status == ORDER_STATUS.RECYCLED) {
@@ -196,10 +207,30 @@ const completeOrder = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Order is already cancelled")
     }
 
-    order.status = ORDER_STATUS.RECYCLED;
-    order.totalAmount = totalAmount;
+    if (order.status != ORDER_STATUS.ACCEPTED) {
+        throw new ApiError(400, "Order is not assigned yet")
+    }
+
+
+    const totalAmount = Array.isArray(orderItem)
+        ? orderItem.reduce((acc, item) => acc + item.amount, 0)
+        : 0;
+
+    if (totalAmount === 0) {
+        throw new ApiError(400, "Total amount cannot be zero")
+    }
+
+
+    order.totalAmount = totalAmount.toFixed(2);
     order.orderItem = orderItem;
-    const updatedOrder = await order.save();
+    order.status = ORDER_STATUS.RECYCLED;
+    order.timeline.push({
+        date: new Date(),
+        time: new Date().toLocaleTimeString(),
+        message: TIME_LINE_MESSAGES.ORDER_RECYCLED
+    })
+
+    const updatedOrder = await (await order.save()).populate('user', 'email');
 
     if (!updatedOrder) {
         throw new ApiError(500, "Something went wrong while updating order")
@@ -208,7 +239,6 @@ const completeOrder = asyncHandler(async (req, res) => {
     res
         .status(200)
         .json(new ApiResponse(200, updatedOrder, "Order completed successfully"));
-
 
     sendEmail(updatedOrder.user.email, {
         subject: "Order Completed",
@@ -494,7 +524,7 @@ export {
     createOrder,
     getMyOrders,
     getNewOrderRequest,
-    getOderById,
+    getOrderById,
     acceptOrder,
     completeOrder,
     cancelOrder,

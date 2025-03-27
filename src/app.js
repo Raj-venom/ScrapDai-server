@@ -33,10 +33,11 @@ import dashboardRouter from "./routes/dashboard.routes.js"
 
 
 // print all request hit to server
-// app.use((req, res, next) => {
-//   console.log(`[${req.method}] ${req.url}`)
-//   next()
-// })
+
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.url}`)
+  next()
+})
 
 //routes declaration
 app.use("/api/v1/healthcheck", healthcheckRouter)
