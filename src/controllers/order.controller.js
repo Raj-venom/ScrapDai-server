@@ -101,7 +101,12 @@ const getMyOrders = asyncHandler(async (req, res) => {
 const getNewOrderRequest = asyncHandler(async (req, res) => {
 
 
-    const orders = await Order.find({ status: ORDER_STATUS.PENDING }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 }).limit(2);
+    const orders = await Order.find({ status: ORDER_STATUS.PENDING })
+        .populate({ path: "orderItem.scrap", select: "name pricePerKg" })
+        .populate({ path: "user", select: "fullName avatar" })
+        .select("-timeline -feedback")
+        .sort({ createdAt: -1 })
+        .limit(2);
 
     if (!orders) {
         throw new ApiError(404, "No orders found")
@@ -383,7 +388,7 @@ const getNearbyOrders = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Coordinates are out of valid range");
     }
 
-    // Using aggregation pipeline to calculate and filter nearby orders
+
     const nearbyOrders = await Order.aggregate([
         {
             $match: {
@@ -445,6 +450,79 @@ const getNearbyOrders = asyncHandler(async (req, res) => {
         {
             $unwind: "$userDetails"
         },
+        // Unwind orderItem array to prepare for scrap lookup
+        {
+            $unwind: {
+                path: "$orderItem",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        // Lookup scrap details
+        {
+            $lookup: {
+                from: "scraps",
+                localField: "orderItem.scrap",
+                foreignField: "_id",
+                as: "orderItem.scrapDetails"
+            }
+        },
+        // Unwind the scrap details
+        {
+            $unwind: {
+                path: "$orderItem.scrapDetails",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        // Reshape the orderItem with scrap details
+        {
+            $addFields: {
+                "orderItem.scrap": {
+                    _id: "$orderItem.scrapDetails._id",
+                    name: "$orderItem.scrapDetails.name",
+                    pricePerKg: "$orderItem.scrapDetails.pricePerKg"
+                }
+            }
+        },
+        // Group back to recompose the original document structure
+        {
+            $group: {
+                _id: "$_id",
+                pickupAddress: { $first: "$pickupAddress" },
+                pickUpDate: { $first: "$pickUpDate" },
+                status: { $first: "$status" },
+                estimatedAmount: { $first: "$estimatedAmount" },
+                totalAmount: { $first: "$totalAmount" },
+                scrapImage: { $first: "$scrapImage" },
+                pickUpTime: { $first: "$pickUpTime" },
+                contactNumber: { $first: "$contactNumber" },
+                distance: { $first: { $round: ["$distance", 2] } },
+                user: {
+                    $first: {
+                        _id: "$userDetails._id",
+                        fullName: "$userDetails.fullName",
+                        avatar: "$userDetails.avatar"
+                    }
+                },
+                orderItem: {
+                    $push: {
+                        $cond: [
+                            { $ifNull: ["$orderItem", false] }, // Check if orderItem exists
+                            {
+                                scrap: "$orderItem.scrap",
+                                weight: "$orderItem.weight",
+                                amount: "$orderItem.amount",
+                                _id: "$orderItem._id"
+                            },
+                            "$$REMOVE"  // If orderItem is null or doesn't exist, remove this item
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            $sort: { distance: 1 } // Sort by distance ascending
+        },
+        // Final projection to format the output
         {
             $project: {
                 _id: 1,
@@ -456,17 +534,16 @@ const getNearbyOrders = asyncHandler(async (req, res) => {
                 scrapImage: 1,
                 pickUpTime: 1,
                 contactNumber: 1,
-                distance: { $round: ["$distance", 2] },
-                user: {
-                    _id: "$userDetails._id",
-                    name: "$userDetails.name",
-                    avatar: "$userDetails.avatar"
-                }
+                distance: 1,
+                user: 1,
+                orderItem: 1
             }
         }
     ]);
 
-    return res.status(200).json(new ApiResponse(200, nearbyOrders, "Orders fetched successfully"));
+    return res
+        .status(200)
+        .json(new ApiResponse(200, nearbyOrders, "Orders fetched successfully"));
 });
 
 
@@ -474,7 +551,11 @@ const getHighValueOrders = asyncHandler(async (req, res) => {
 
     const highValue = 1000;
 
-    const orders = await Order.find({ status: ORDER_STATUS.PENDING, estimatedAmount: { $gte: highValue } }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 });
+    const orders = await Order.find({ status: ORDER_STATUS.PENDING, estimatedAmount: { $gte: highValue } })
+        .populate({ path: "orderItem.scrap", select: "name pricePerKg" })
+        .populate({ path: "user", select: "fullName avatar" })
+        .select("-timeline -feedback")
+        .sort({ createdAt: -1 });
 
     if (!orders) {
         throw new ApiError(404, "No orders found")
@@ -487,7 +568,11 @@ const getHighValueOrders = asyncHandler(async (req, res) => {
 
 const getAllPendingOrders = asyncHandler(async (req, res) => {
 
-    const orders = await Order.find({ status: ORDER_STATUS.PENDING }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "user", select: "fullName" }).select("-timeline -feedback").sort({ createdAt: -1 });
+    const orders = await Order.find({ status: ORDER_STATUS.PENDING })
+        .populate({ path: "orderItem.scrap", select: "name pricePerKg" })
+        .populate({ path: "user", select: "fullName avatar" })
+        .select("-timeline -feedback")
+        .sort({ createdAt: -1 });
 
     if (!orders) {
         throw new ApiError(404, "No orders found")
