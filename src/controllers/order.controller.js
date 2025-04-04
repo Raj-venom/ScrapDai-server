@@ -83,10 +83,30 @@ const createOrder = asyncHandler(async (req, res) => {
 
 });
 
+// User Order History
 const getMyOrders = asyncHandler(async (req, res) => {
 
-    // populate orderItem with scrap, collector with fullName
-    const orders = await Order.find({ user: req.user?._id }).populate({ path: "orderItem.scrap", select: "name" }).populate({ path: "collector", select: "fullName" });
+    // populate collector fullName and phone
+    const orders = await Order.find({ user: req.user?._id })
+        .populate({ path: "orderItem.scrap", select: "name" })
+        .populate({ path: "collector", select: "fullName phone" })
+
+    if (!orders) {
+        throw new ApiError(404, "No orders found")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+
+});
+
+// Collector Order History
+const getCollectorsOrdersHistory = asyncHandler(async (req, res) => {
+
+    const orders = await Order.find({ collector: req.user?._id })
+        .populate({ path: "orderItem.scrap", select: "name" })
+        .populate({ path: "user", select: "fullName" });
 
     if (!orders) {
         throw new ApiError(404, "No orders found")
@@ -618,5 +638,6 @@ export {
     getNearbyOrders,
     getHighValueOrders,
     getAllPendingOrders,
-    getOrderScheduledForToday
+    getOrderScheduledForToday,
+    getCollectorsOrdersHistory
 }
