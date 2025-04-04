@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { Order } from "../models/order.model.js";
 import { ORDER_STATUS } from "../constants.js";
 import { User } from "../models/user.model.js";
+import { Collector } from "../models/collector.model.js";
 
 
 const userStats = asyncHandler(async (req, res) => {
@@ -78,4 +79,67 @@ const userStats = asyncHandler(async (req, res) => {
 });
 
 
-export { userStats };
+const collectorStats = asyncHandler(async (req, res) => {
+
+    const userId = req?.user._id;
+    const collector = await Collector.findById(userId).select("fullName email avatar");
+
+    if (!collector) {
+        throw new ApiError(404, "Collector not found");
+    }
+
+    const stats = await Order.aggregate([
+        {
+            $match: {
+                collector: userId,
+                status: ORDER_STATUS.RECYCLED
+            }
+        },
+        {
+            $unwind: {
+                path: "$orderItem",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $group: {
+                _id: "$collector",
+                totalCompletedOrders: { $sum: 1 },
+                totalWeight: { $sum: "$orderItem.weight" },
+                totalEarnings: { $sum: "$totalAmount" }
+            }
+        },
+
+        {
+            $project: {
+                _id: 0,
+                totalCompletedOrders: 1,
+                totalWeight: { $ifNull: ["$totalWeight", 0] },
+                totalEarnings: { $ifNull: ["$totalEarnings", 0] }
+            }
+        }
+    ])
+
+    const collectorStatistics = stats.length > 0 ? stats[0] : {
+        totalCompletedOrders: 0,
+        totalWeight: 0,
+        totalEarnings: 0
+    };
+
+    const result = {
+        collector,
+        ...collectorStatistics
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, result, "Collector statistics fetched successfully"));
+
+
+});
+
+
+export {
+    userStats,
+    collectorStats
+};
