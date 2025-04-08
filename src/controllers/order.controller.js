@@ -6,6 +6,7 @@ import { Order } from "../models/order.model.js";
 import { sendEmail } from "../utils/Helper.js";
 import { orderAcceptedEmail, orderConfirmationEmail } from "../utils/EmailText.js";
 import { ORDER_STATUS, TIME_LINE_MESSAGES } from "../constants.js";
+import { createOrderStatusNotification } from "./notification.controller.js";
 
 
 
@@ -188,6 +189,8 @@ const acceptOrder = asyncHandler(async (req, res) => {
     if (!updatedOrder) {
         throw new ApiError(500, "Something went wrong while updating order")
     }
+
+    await createOrderStatusNotification(updatedOrder._id, ORDER_STATUS.ACCEPTED);
 
     res
         .status(200)
