@@ -32,6 +32,8 @@ import orderRouter from "./routes/order.routes.js"
 import dashboardRouter from "./routes/dashboard.routes.js"
 
 
+import analyticsRoutes from "./routes/analytics.routes.js";
+
 // print all request hit to server
 
 app.use((req, res, next) => {
@@ -48,6 +50,9 @@ app.use("/api/v1/scrap", scrapRouter)
 app.use("/api/v1/category", categoryRouter)
 app.use("/api/v1/order", orderRouter)
 app.use("/api/v1/dashboard", dashboardRouter)
+
+
+app.use("/api/v1/analytics", analyticsRoutes);
 
 
 
