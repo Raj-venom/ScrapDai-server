@@ -120,3 +120,7 @@ dist
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
 
 notes.js
+
+feedback.model.js
+feedback.routes.js
+feedback.controller.js
