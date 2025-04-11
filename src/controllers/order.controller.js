@@ -628,6 +628,106 @@ const getOrderScheduledForToday = asyncHandler(async (req, res) => {
 
 });
 
+const getUserOrderHistoryById = asyncHandler(async (req, res) => {
+    const userId = req.params.id;
+    const { timeframe } = req.query;
+
+    let query = { user: userId };
+
+
+    if (timeframe) {
+        const now = new Date();
+        let dateThreshold;
+
+        switch (timeframe) {
+            case 'today':
+                dateThreshold = new Date(now.setHours(0, 0, 0, 0));
+                break;
+            case 'week':
+                dateThreshold = new Date(now);
+                dateThreshold.setDate(dateThreshold.getDate() - 7);
+                break;
+            case 'month':
+                dateThreshold = new Date(now);
+                dateThreshold.setMonth(dateThreshold.getMonth() - 1);
+                break;
+            case 'year':
+                dateThreshold = new Date(now);
+                dateThreshold.setFullYear(dateThreshold.getFullYear() - 1);
+                break;
+        }
+
+        if (dateThreshold) {
+            query.createdAt = { $gte: dateThreshold };
+        }
+    }
+
+    const orders = await Order.find(query)
+        .populate({ path: "orderItem.scrap", select: "name" })
+        .populate({ path: "collector", select: "fullName phone" })
+        .sort({ createdAt: -1 });
+
+    if (!orders || orders.length === 0) {
+        return res
+            .status(200)
+            .json(new ApiResponse(200, [], "No orders found"));
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+});
+
+
+const getCollectorOrderHistoryById = asyncHandler(async (req, res) => {
+    const collectorId = req.params.id;
+    const { timeframe } = req.query;
+
+    let query = { collector: collectorId };
+
+    if (timeframe) {
+        const now = new Date();
+        let dateThreshold;
+
+        switch (timeframe) {
+            case 'today':
+                dateThreshold = new Date(now.setHours(0, 0, 0, 0));
+                break;
+            case 'week':
+                dateThreshold = new Date(now);
+                dateThreshold.setDate(dateThreshold.getDate() - 7);
+                break;
+            case 'month':
+                dateThreshold = new Date(now);
+                dateThreshold.setMonth(dateThreshold.getMonth() - 1);
+                break;
+            case 'year':
+                dateThreshold = new Date(now);
+                dateThreshold.setFullYear(dateThreshold.getFullYear() - 1);
+                break;
+        }
+
+        if (dateThreshold) {
+            query.createdAt = { $gte: dateThreshold };
+        }
+    }
+
+    const orders = await Order.find(query)
+        .populate({ path: "orderItem.scrap", select: "name" })
+        .populate({ path: "user", select: "fullName phone" })
+        .sort({ createdAt: -1 });
+
+    if (!orders || orders.length === 0) {
+        return res
+            .status(200)
+            .json(new ApiResponse(200, [], "No orders found"));
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+});
+
 export {
     createOrder,
     getMyOrders,
@@ -642,5 +742,7 @@ export {
     getHighValueOrders,
     getAllPendingOrders,
     getOrderScheduledForToday,
-    getCollectorsOrdersHistory
+    getCollectorsOrdersHistory,
+    getUserOrderHistoryById,
+    getCollectorOrderHistoryById
 }

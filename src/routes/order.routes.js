@@ -13,7 +13,9 @@ import {
     getAllPendingOrders,
     getHighValueOrders,
     getOrderScheduledForToday,
-    getCollectorsOrdersHistory
+    getCollectorsOrdersHistory,
+    getCollectorOrderHistoryById,
+    getUserOrderHistoryById
 
 } from '../controllers/order.controller.js';
 
@@ -46,6 +48,10 @@ router.route('/place-order').post(verifyAuthourization(USER_ROLE.USER), placeOrd
 // GET
 router.route('/my-orders').get(verifyAuthourization(USER_ROLE.USER), getMyOrders); // User's orders History
 router.route('/collectors-orders-history').get(verifyAuthourization(USER_ROLE.COLLECTOR), getCollectorsOrdersHistory);
+
+router.route('/collector-orders-history/:id').get(verifyAuthourization(USER_ROLE.ADMIN), getCollectorOrderHistoryById);
+router.route('/user-order-history/:id').get(verifyAuthourization(USER_ROLE.ADMIN), getUserOrderHistoryById);
+
 
 router.route('/new-order-request').get(verifyAuthourization(USER_ROLE.COLLECTOR), getNewOrderRequest);
 router.route('/collector-orders').get(verifyAuthourization(USER_ROLE.COLLECTOR), getCollectorsPendingOrders);
