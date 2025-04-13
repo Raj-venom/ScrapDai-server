@@ -49,7 +49,14 @@ const collectorSchema = new mongoose.Schema({
     role: {
         type: String,
         default: USER_ROLE.COLLECTOR
-    }
+    },
+    otp: {
+        type: String,
+    },
+
+    otpExpiry: {
+        type: Date,
+    },
 },
     {
         timestamps: true,
@@ -103,6 +110,20 @@ collectorSchema.methods.generateRefreshToken = function () {
 
         {
             expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        }
+    )
+}
+
+collectorSchema.methods.generateResetPasswordToken = function () {
+
+    return Jwt.sign(
+        {
+            _id: this._id,
+        },
+        process.env.RESET_PASSWORD_SECRET,
+
+        {
+            expiresIn: process.env.RESET_PASSWORD_EXPIRY
         }
     )
 }
