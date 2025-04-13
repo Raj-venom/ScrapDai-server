@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { randomPasswordGenerator, sendEmail, validateEmail, cookieOptions, clearCookieOptions } from "../utils/Helper.js";
 import { Admin } from "../models/admin.model.js";
+import jwt from "jsonwebtoken";
 
 
 const generateAccessAndRefereshTokens = async (userId) => {
@@ -113,7 +114,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .cookie("accessToken", accessToken, cookieOptions)
+        .cookie("accessToken", accessToken, {...cookieOptions, expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)})
         .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
             new ApiResponse(
@@ -203,10 +204,56 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 })
 
 
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+
+    const sendUnauthorizedResponse = () => {
+        return res
+            .status(200)
+            .clearCookie("accessToken", clearCookieOptions)
+            .clearCookie("refreshToken", clearCookieOptions)
+            .json(new ApiResponse(401, {}, "Unauthorized request"));
+    };
+
+    if (!incomingRefreshToken) {
+        return sendUnauthorizedResponse();
+    }
+
+    try {
+        const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+        if (!decodedToken) {
+            return sendUnauthorizedResponse();
+        }
+
+        const admin = await Admin.findById(decodedToken._id);
+        if (!admin || admin.refreshToken !== incomingRefreshToken) {
+            return sendUnauthorizedResponse();
+        }
+
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(admin._id);
+        if (!accessToken || !newRefreshToken) {
+            return sendUnauthorizedResponse();
+        }
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, { ...cookieOptions, expires: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) })
+            .cookie("refreshToken", newRefreshToken, cookieOptions)
+            .json(new ApiResponse(200, { accessToken, refreshToken: newRefreshToken }, "Tokens refreshed successfully"));
+
+    } catch (error) {
+        console.log(error?.message);
+        return sendUnauthorizedResponse();
+    }
+});
+
+
 export {
     registerAdmin,
     loginAdmin,
     logoutAdmin,
     changeCurrentPassword,
-    getCurrentUser
+    getCurrentUser,
+    refreshAccessToken
 }

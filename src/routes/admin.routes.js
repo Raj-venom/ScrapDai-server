@@ -5,6 +5,7 @@ import {
     loginAdmin,
     logoutAdmin,
     registerAdmin,
+    refreshAccessToken,
 
 } from '../controllers/admin.controller.js';
 import { upload } from "../middlewares/multer.middleware.js";
@@ -20,6 +21,7 @@ router.route('/register').post(registerAdmin);
 router.route('/login').post(loginAdmin);
 router.route('/logout').post(verifyAuthourization(USER_ROLE.ADMIN), logoutAdmin);
 router.route("/change-password").post(verifyAuthourization(USER_ROLE.ADMIN), changeCurrentPassword)
+router.route("/refresh-access-token").post(refreshAccessToken)
 
 // GET
 router.route("/current-user").get(verifyAuthourization(USER_ROLE.ADMIN), getCurrentUser)
