@@ -108,13 +108,9 @@ const loginCollector = asyncHandler(async (req, res) => {
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(collector._id)
-    if (collector.firstLogin) {
-        collector.password = undefined
-        return res
-            .status(200)
-            .cookie("accessToken", accessToken, cookieOptions)
-            .json(new ApiResponse(200, collector, "First time login detected please change your password"))
-    }
+
+    collector.firstLogin = false
+    await collector.save({ validateBeforeSave: false })
 
 
     const loggedInCollector = await Collector.findById(collector._id).select("-password -refreshToken")
