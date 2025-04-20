@@ -490,16 +490,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 const updateUserProfile = asyncHandler(async (req, res) => {
 
-
-    // const avatarLocalPath = req.file?.path
-
-    // const avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : undefined
-
-    // let avatar;
-    // if (avatarLocalPath) {
-    //     avatar = await uploadOnCloudinary(avatarLocalPath)
-    // }
-
     const { fullName, phone, gender } = req.body
 
     if (fullName?.trim() === "") {
@@ -633,7 +623,7 @@ const autoDeleteUsers = async (req, res) => {
     try {
 
         const deletionThreshold = new Date();
-        deletionThreshold.setMinutes(deletionThreshold.getMinutes() - 2); 
+        deletionThreshold.setMinutes(deletionThreshold.getMinutes() - 2);
 
 
         // Find users eligible for deletion
@@ -673,6 +663,42 @@ const getAllUsers = asyncHandler(async (req, res) => {
 })
 
 
+const updateUserAvatar = asyncHandler(async (req, res) => {
+
+    const avatarLocalPath = req.file?.path
+
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is missing")
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if (!avatar.url) {
+        throw new ApiError(500, "Failed to upload avatar")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        { new: true }
+    ).select("-password")
+
+    if (!user) {
+        throw new ApiError(500, "Something went wrong while updatating Avatar image")
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, user, "Avatar image updated successfully")
+        )
+
+})
+
 export {
     registerUser,
     verifyUserWithOtp,
@@ -687,5 +713,6 @@ export {
     requestAccountDeletion,
     cancelAccountDeletion,
     autoDeleteUsers,
-    getAllUsers
+    getAllUsers,
+    updateUserAvatar,
 }

@@ -13,6 +13,7 @@ import {
     requestAccountDeletion,
     updateUserProfile,
     getAllUsers,
+    updateUserAvatar
 } from '../controllers/user.controller.js';
 import { verifyJWT, verifyAuthourization } from '../middlewares/auth.middleware.js';
 import { upload } from "../middlewares/multer.middleware.js";
@@ -38,5 +39,7 @@ router.route("/all").get(getAllUsers)
 
 // patch
 router.route("/update-profile").patch(verifyAuthourization(USER_ROLE.USER), updateUserProfile)
+router.route("/update-avatar").patch(verifyAuthourization(USER_ROLE.USER), upload.single("avatar"), updateUserAvatar)
+
 
 export default router 
