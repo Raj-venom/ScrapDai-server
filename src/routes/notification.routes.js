@@ -3,7 +3,8 @@ import {
     createNotification,
     getNotifications,
     markAsRead,
-    deleteNotification
+    deleteNotification,
+    markAsAllRead,
 } from "../controllers/notification.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -15,10 +16,11 @@ router.route("/")
     .post(createNotification)
     .get(getNotifications);
 
-router.route("/:notificationId/read")
-    .patch(markAsRead);
+router.route("/:notificationId/read").patch(markAsRead);
+router.route("/mark-as-all-read").patch(markAsAllRead);
 
 router.route("/:notificationId")
     .delete(deleteNotification);
+
 
 export default router;

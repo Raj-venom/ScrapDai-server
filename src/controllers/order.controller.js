@@ -91,6 +91,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
     const orders = await Order.find({ user: req.user?._id })
         .populate({ path: "orderItem.scrap", select: "name" })
         .populate({ path: "collector", select: "fullName phone" })
+        .sort({ createdAt: -1 })
 
     if (!orders) {
         throw new ApiError(404, "No orders found")
@@ -107,7 +108,8 @@ const getCollectorsOrdersHistory = asyncHandler(async (req, res) => {
 
     const orders = await Order.find({ collector: req.user?._id })
         .populate({ path: "orderItem.scrap", select: "name" })
-        .populate({ path: "user", select: "fullName" });
+        .populate({ path: "user", select: "fullName" })
+        .sort({ createdAt: -1 });
 
     if (!orders) {
         throw new ApiError(404, "No orders found")

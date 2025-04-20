@@ -230,6 +230,19 @@ const loginUser = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password -refreshToken -otp -otpExpiry -deletionRequested -deletionRequestDate -cancelDeletionToken")
 
+    if (!loggedInUser) {
+        throw new ApiError(500, "Something went wrong while logouting user")
+    }
+
+    if (user.deletionRequested) {
+        await sendEmail(user.email, {
+            subject: "Account Deletion Cancelled",
+            text: "Account deletion request cancelled",
+            body: `Your account deletion request has been cancelled. If you did not request this, please contact support.`
+        })
+
+    }
+
     return res
         .status(200)
         .cookie("accessToken", accessToken, cookieOptions)
@@ -620,7 +633,7 @@ const autoDeleteUsers = async (req, res) => {
     try {
 
         const deletionThreshold = new Date();
-        deletionThreshold.setMinutes(deletionThreshold.getMinutes() - 2);
+        deletionThreshold.setMinutes(deletionThreshold.getMinutes() - 2); 
 
 
         // Find users eligible for deletion

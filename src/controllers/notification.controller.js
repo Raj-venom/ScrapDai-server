@@ -153,10 +153,36 @@ const createOrderStatusNotification = async (orderId, status) => {
     }
 };
 
+
+const markAsAllRead = asyncHandler(async (req, res) => {
+    const { userId, collectorId } = req.query;
+    let query = {};
+
+    if (userId) {
+        query.user = userId;
+    } else if (collectorId) {
+        query.collector = collectorId;
+    } else {
+        return res.status(400).json({ message: "Either user or collector ID is required" });
+    }
+
+    const notifications = await Notification.updateMany(query, { isRead: true });
+
+    if (!notifications) {
+        return res.status(404).json({ message: "No notifications found" });
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, notifications, "All notifications marked as read successfully"));
+
+});
+
 export {
     createNotification,
     getNotifications,
     markAsRead,
     deleteNotification,
-    createOrderStatusNotification
+    createOrderStatusNotification,
+    markAsAllRead
 };
