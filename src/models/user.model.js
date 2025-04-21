@@ -88,7 +88,11 @@ const userSchema = new mongoose.Schema(
         role: {
             type: String,
             default: USER_ROLE.USER
-        }
+        },
+        isBanned: {
+            type: Boolean,
+            default: false
+        },
 
     },
     {

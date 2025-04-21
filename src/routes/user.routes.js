@@ -13,9 +13,11 @@ import {
     requestAccountDeletion,
     updateUserProfile,
     getAllUsers,
-    updateUserAvatar
+    updateUserAvatar,
+    banUser,
+    unBanUser,
 } from '../controllers/user.controller.js';
-import { verifyJWT, verifyAuthourization } from '../middlewares/auth.middleware.js';
+import { verifyAuthourization } from '../middlewares/auth.middleware.js';
 import { upload } from "../middlewares/multer.middleware.js";
 import { USER_ROLE } from "../constants.js";
 
@@ -40,6 +42,8 @@ router.route("/all").get(getAllUsers)
 // patch
 router.route("/update-profile").patch(verifyAuthourization(USER_ROLE.USER), updateUserProfile)
 router.route("/update-avatar").patch(verifyAuthourization(USER_ROLE.USER), upload.single("avatar"), updateUserAvatar)
+router.route("/ban-user/:id").patch(verifyAuthourization(USER_ROLE.ADMIN), banUser)
+router.route("/unban-user/:id").patch(verifyAuthourization(USER_ROLE.ADMIN), unBanUser)
 
 
 export default router 

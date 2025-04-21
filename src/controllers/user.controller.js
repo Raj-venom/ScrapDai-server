@@ -7,6 +7,7 @@ import { generateOtp, sendEmail, cookieOptions, validateEmail, clearCookieOption
 import { accountDeletionEmail, forgotPasswordEmail, verifyOtpTextWithIP, WelcomeText } from "../utils/EmailText.js"
 import { GENDER } from "../constants.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { isValidObjectId } from "mongoose";
 
 
 const generateAccessAndRefereshTokens = async (userId) => {
@@ -200,6 +201,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
     if (!user) {
         throw new ApiError(404, "User not found")
+    }
+
+    if (user.isBanned) {
+        throw new ApiError(403, "User is banned please contact support")
     }
 
     if (!user.isverified) {
@@ -699,6 +704,65 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
 })
 
+const banUser = asyncHandler(async (req, res) => {
+
+    const userId = req.params.id
+
+    if (!isValidObjectId(userId)) {
+        throw new ApiError(400, "Invalid user id")
+    }
+
+    if (!userId) {
+        throw new ApiError(400, "User id is required")
+    }
+
+    const user = await User.findById(userId)
+
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
+
+    if (user.isBanned) {
+        throw new ApiError(400, "User already banned")
+    }
+    user.isBanned = true
+    await user.save()
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "User banned successfully"))
+
+})
+
+const unBanUser = asyncHandler(async (req, res) => {
+
+    const userId = req.params.id
+
+    if (!isValidObjectId(userId)) {
+        throw new ApiError(400, "Invalid user id")
+    }
+
+    if (!userId) {
+        throw new ApiError(400, "User id is required")
+    }
+
+    const user = await User.findById(userId)
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
+    if (!user.isBanned) {
+        throw new ApiError(400, "User already unbanned")
+    }
+
+    user.isBanned = false
+    await user.save()
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "User unbanned successfully"))
+
+})
+
 export {
     registerUser,
     verifyUserWithOtp,
@@ -715,4 +779,6 @@ export {
     autoDeleteUsers,
     getAllUsers,
     updateUserAvatar,
+    banUser,
+    unBanUser
 }
