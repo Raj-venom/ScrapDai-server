@@ -91,6 +91,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
     const orders = await Order.find({ user: req.user?._id })
         .populate({ path: "orderItem.scrap", select: "name" })
         .populate({ path: "collector", select: "fullName phone" })
+        .populate({ path: "feedback", select: "userRating userReview" })
         .sort({ createdAt: -1 })
 
     if (!orders) {
@@ -109,6 +110,7 @@ const getCollectorsOrdersHistory = asyncHandler(async (req, res) => {
     const orders = await Order.find({ collector: req.user?._id })
         .populate({ path: "orderItem.scrap", select: "name" })
         .populate({ path: "user", select: "fullName" })
+        .populate({ path: "feedback", select: "collectorRating collectorReview" })
         .sort({ createdAt: -1 });
 
     if (!orders) {
