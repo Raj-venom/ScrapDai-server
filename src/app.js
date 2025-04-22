@@ -34,6 +34,7 @@ import dashboardRouter from "./routes/dashboard.routes.js"
 
 import analyticsRoutes from "./routes/analytics.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
+import feedbackRouter from "./routes/feedback.routes.js";
 
 // print all request hit to server
 
@@ -55,7 +56,7 @@ app.use("/api/v1/dashboard", dashboardRouter)
 
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/notification", notificationRouter)
-
+app.use("/api/v1/feedback", feedbackRouter)
 
 
 // TaskScheduler();

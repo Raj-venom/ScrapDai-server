@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import mongoose from "mongoose";
 import { Scrap } from "../models/scrap.model.js";
-import {uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 
 const addNewScrap = asyncHandler(async (req, res) => {
@@ -222,6 +222,30 @@ const updateScrapDetails = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, scrap, "Scrap updated successfully"))
 });
 
+
+const getRandomScrapPrice = asyncHandler(async (req, res) => {
+
+    const scrapItems = await Scrap.aggregate([
+
+        { $sample: { size: 3 } },
+        {
+            $project: {
+                _id: 0,
+                scrap: "$name",
+                price: "$pricePerKg"
+            }
+        }
+    ]);
+
+    if (!scrapItems) {
+        throw new ApiError(404, "Scraps not found")
+    }
+    return res
+        .status(200)
+        .json(new ApiResponse(200, scrapItems, "Scraps found successfully"))
+
+})
+
 export {
     addNewScrap,
     updateScrapPrice,
@@ -230,5 +254,6 @@ export {
     getAllScraps,
     updatedMultipleScrapPrice,
     getAllScrapsPrice,
-    updateScrapDetails
+    updateScrapDetails,
+    getRandomScrapPrice
 }

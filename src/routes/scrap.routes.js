@@ -7,7 +7,8 @@ import {
     getScrapById,
     updatedMultipleScrapPrice,
     getAllScrapsPrice,
-    updateScrapDetails
+    updateScrapDetails,
+    getRandomScrapPrice
 } from '../controllers/scrap.controller.js';
 import { upload } from "../middlewares/multer.middleware.js"
 
@@ -20,6 +21,7 @@ router.route('/').post(upload.single('ScrapImage'), addNewScrap);
 router.route('/').get(getAllScraps);
 router.route("/:id").get(getScrapById);
 router.route('/all/prices').get(getAllScrapsPrice);
+router.route('/random/price').get(getRandomScrapPrice);
 
 // DELETE
 router.route('/:id').delete(deleteScrap);
