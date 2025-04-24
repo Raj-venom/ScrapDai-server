@@ -187,7 +187,7 @@ const verifyUserWithOtp = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
 
-    const { identifier, password } = req.body
+    const { identifier, password, expoPushToken } = req.body
 
     if (
         [identifier, password].some((field) => field?.trim() === "" || field?.trim() == undefined)
@@ -211,6 +211,10 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User not verified")
     }
 
+    if (!expoPushToken) {
+        console.log("expoPushToken is missing")
+    }
+
     const isPasswordValid = await user.isPasswordCorrect(password)
 
     if (!isPasswordValid) {
@@ -228,7 +232,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
             },
             $set: {
-                deletionRequested: false
+                deletionRequested: false,
+                expoPushToken: expoPushToken || user?.expoPushToken,
             }
 
         },

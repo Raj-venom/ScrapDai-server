@@ -5,6 +5,8 @@ import {
     markAsRead,
     deleteNotification,
     markAsAllRead,
+    sendPromotionNotification,
+    sendSystemNotification,
 } from "../controllers/notification.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -19,8 +21,9 @@ router.route("/")
 router.route("/:notificationId/read").patch(markAsRead);
 router.route("/mark-as-all-read").patch(markAsAllRead);
 
-router.route("/:notificationId")
-    .delete(deleteNotification);
+router.route("/:notificationId").delete(deleteNotification);
 
+router.route("/promotional").post(sendPromotionNotification);
+router.route("/system").post(sendSystemNotification);
 
 export default router;

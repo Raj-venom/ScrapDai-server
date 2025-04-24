@@ -87,7 +87,7 @@ const registerCollector = asyncHandler(async (req, res) => {
 
 const loginCollector = asyncHandler(async (req, res) => {
 
-    const { identifier, password } = req.body
+    const { identifier, password, expoPushToken } = req.body
 
     if (
         [identifier, password].some((field) => field?.trim() === "" || field?.trim() == undefined)
@@ -107,9 +107,14 @@ const loginCollector = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid credentials")
     }
 
+    if (!expoPushToken) {
+        console.log("expoPushToken is missing")
+    }
+
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(collector._id)
 
     collector.firstLogin = false
+    collector.expoPushToken = expoPushToken || collector?.expoPushToken
     await collector.save({ validateBeforeSave: false })
 
 

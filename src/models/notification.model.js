@@ -5,7 +5,8 @@ const NOTIFICATION_TYPES = {
     ORDER_RECYCLED: "ORDER_RECYCLED",
     ORDER_CANCELLED: "ORDER_CANCELLED",
     GENERAL: "GENERAL",
-    PROMOTIONAL: "PROMOTIONAL"
+    PROMOTIONAL: "PROMOTIONAL",
+    SYSTEM: "SYSTEM",
 };
 
 const notificationSchema = new mongoose.Schema({
@@ -23,12 +24,23 @@ const notificationSchema = new mongoose.Schema({
             return !this.user;
         }
     },
+    // order: {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "Order",
+    //     required: function () {
+    //         return this.type !== NOTIFICATION_TYPES.GENERAL &&
+    //             this.type !== NOTIFICATION_TYPES.PROMOTIONAL;
+    //     }
+    // },
     order: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
         required: function () {
-            return this.type !== NOTIFICATION_TYPES.GENERAL &&
-                this.type !== NOTIFICATION_TYPES.PROMOTIONAL;
+            return [
+                NOTIFICATION_TYPES.ORDER_ACCEPTED,
+                NOTIFICATION_TYPES.ORDER_RECYCLED,
+                NOTIFICATION_TYPES.ORDER_CANCELLED
+            ].includes(this.type);
         }
     },
     title: {

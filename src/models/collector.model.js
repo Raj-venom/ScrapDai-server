@@ -57,6 +57,11 @@ const collectorSchema = new mongoose.Schema({
     otpExpiry: {
         type: Date,
     },
+    expoPushToken: {
+        type: String,
+        default: null
+    }
+
 },
     {
         timestamps: true,

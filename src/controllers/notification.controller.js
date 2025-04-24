@@ -6,6 +6,7 @@ import { ORDER_STATUS } from "../constants.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
+import { Expo } from "expo-server-sdk";
 
 
 const createNotification = asyncHandler(async (req, res) => {
@@ -178,11 +179,230 @@ const markAsAllRead = asyncHandler(async (req, res) => {
 
 });
 
+const sendPromotionNotification = asyncHandler(async (req, res) => {
+    try {
+        const { title, message, data, userType = 'all' } = req.body;
+
+        if (!title?.trim() || !message?.trim()) {
+            throw new ApiError(400, "Notification title and message are required");
+        }
+
+        const fetchUsers = userType === 'all' || userType === 'users';
+        const fetchCollectors = userType === 'all' || userType === 'collectors';
+
+        const [users, collectors] = await Promise.all([
+            fetchUsers ? User.find({ expoPushToken: { $exists: true, $ne: null } }).select('expoPushToken _id').lean() : Promise.resolve([]),
+            fetchCollectors ? Collector.find({ expoPushToken: { $exists: true, $ne: null } }).select('expoPushToken _id').lean() : Promise.resolve([])
+        ]);
+
+        const validUserTokens = users
+            .filter(user => {
+                const isValid = Expo.isExpoPushToken(user.expoPushToken);
+                if (!isValid) console.warn(`Invalid user token excluded: ${user.expoPushToken}`);
+                return isValid;
+            });
+
+        const validCollectorTokens = collectors
+            .filter(collector => {
+                const isValid = Expo.isExpoPushToken(collector.expoPushToken);
+                if (!isValid) console.warn(`Invalid collector token excluded: ${collector.expoPushToken}`);
+                return isValid;
+            });
+
+        const allValidTokens = [
+            ...validUserTokens.map(u => ({ token: u.expoPushToken, userId: u._id, isUser: true })),
+            ...validCollectorTokens.map(c => ({ token: c.expoPushToken, collectorId: c._id, isUser: false }))
+        ];
+
+        if (!allValidTokens.length) {
+            throw new ApiError(404, "No valid recipient tokens found for the specified user type")
+        }
+
+        // Create database notifications first
+        const notificationPromises = allValidTokens.map(recipient => {
+            const notificationData = {
+                title: title.trim(),
+                message: message.trim(),
+                type: NOTIFICATION_TYPES.PROMOTIONAL,
+                metadata: data || {},
+                isRead: false
+            };
+
+            if (recipient.isUser) {
+                notificationData.user = recipient.userId;
+            } else {
+                notificationData.collector = recipient.collectorId;
+            }
+
+            return Notification.create(notificationData);
+        });
+
+        await Promise.all(notificationPromises);
+
+        // Prepare push notifications
+        const expo = new Expo();
+        const pushNotifications = allValidTokens.map(recipient => ({
+            to: recipient.token,
+            sound: 'default',
+            title: title.trim(),
+            body: message.trim(),
+            data: {
+                ...(data || {}),
+                notificationType: 'environmental_campaign',
+            }
+        }));
+
+        const chunks = expo.chunkPushNotifications(pushNotifications);
+        const results = await Promise.allSettled(
+            chunks.map(chunk => expo.sendPushNotificationsAsync(chunk))
+        );
+
+        const sentTickets = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+        const failedChunks = results.filter(r => r.status === 'rejected').length;
+
+        return res.status(failedChunks ? 207 : 200).json({
+            success: !failedChunks,
+            stats: {
+                totalRecipients: allValidTokens.length,
+                successfulDeliveries: sentTickets.length,
+                failedChunks,
+                notificationsCreated: allValidTokens.length,
+                userType,
+                usersCount: validUserTokens.length,
+                collectorsCount: validCollectorTokens.length
+            },
+            tickets: sentTickets,
+            notificationPreview: {
+                title: title.trim(),
+                body: message.trim(),
+                data: data || null
+            }
+        });
+
+    } catch (error) {
+        console.error(`Notification Error: ${error?.message}`);
+        return res.status(500).json({
+            success: false,
+            message: error?.message || "Internal Server Error",
+            error: error?.message || undefined
+        });
+    }
+});
+
+const sendSystemNotification = asyncHandler(async (req, res) => {
+    try {
+        const { title, message, data } = req.body;
+
+        // Validate input
+        if (!title?.trim() || !message?.trim()) {
+          throw new ApiError(400, "Notification title and message are required");
+        }
+
+        const [users, collectors] = await Promise.all([
+            User.find({ expoPushToken: { $exists: true, $ne: null } }).select('expoPushToken _id').lean(),
+            Collector.find({ expoPushToken: { $exists: true, $ne: null } }).select('expoPushToken _id').lean()
+        ]);
+
+        const validUserTokens = users
+            .filter(user => {
+                const isValid = Expo.isExpoPushToken(user.expoPushToken);
+                if (!isValid) console.warn(`Invalid user token excluded: ${user.expoPushToken}`);
+                return isValid;
+            });
+
+        const validCollectorTokens = collectors
+            .filter(collector => {
+                const isValid = Expo.isExpoPushToken(collector.expoPushToken);
+                if (!isValid) console.warn(`Invalid collector token excluded: ${collector.expoPushToken}`);
+                return isValid;
+            });
+
+        const allValidTokens = [
+            ...validUserTokens.map(u => ({ token: u.expoPushToken, userId: u._id, isUser: true })),
+            ...validCollectorTokens.map(c => ({ token: c.expoPushToken, collectorId: c._id, isUser: false }))
+        ];
+
+        if (!allValidTokens.length) {
+            throw new ApiError(404, "No valid recipient tokens found for the specified user type")
+        }
+
+        // Create database notifications
+        const notificationPromises = allValidTokens.map(recipient => {
+            const notificationData = {
+                title: title.trim(),
+                message: message.trim(),
+                type: NOTIFICATION_TYPES.SYSTEM,
+                metadata: data || {},
+                isRead: false
+            };
+
+            if (recipient.isUser) {
+                notificationData.user = recipient.userId;
+            } else {
+                notificationData.collector = recipient.collectorId;
+            }
+
+            return Notification.create(notificationData);
+        });
+
+        await Promise.all(notificationPromises);
+
+        // Prepare and send push notifications
+        const expo = new Expo();
+        const pushNotifications = allValidTokens.map(recipient => ({
+            to: recipient.token,
+            sound: 'default',
+            title: title.trim(),
+            body: message.trim(),
+            data: {
+                ...(data || {}),
+                notificationType: NOTIFICATION_TYPES.SYSTEM,
+            }
+        }));
+
+        // Send in chunks (Expo has a limit per request)
+        const chunks = expo.chunkPushNotifications(pushNotifications);
+        const results = await Promise.allSettled(
+            chunks.map(chunk => expo.sendPushNotificationsAsync(chunk))
+        );
+
+        const sentTickets = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+        const failedChunks = results.filter(r => r.status === 'rejected').length;
+
+        return res.status(failedChunks ? 207 : 200).json({
+            success: !failedChunks,
+            stats: {
+                totalRecipients: allValidTokens.length,
+                successfulDeliveries: sentTickets.length,
+                failedChunks,
+                notificationsCreated: allValidTokens.length,
+                usersCount: validUserTokens.length,
+                collectorsCount: validCollectorTokens.length
+            },
+            notificationPreview: {
+                title: title.trim(),
+                body: message.trim(),
+                data: data || null
+            }
+        });
+
+    } catch (error) {
+        console.error(`System Notification Error: ${error.message}`);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to send system notification",
+            error: error.message || undefined
+        });
+    }
+});
+
 export {
     createNotification,
     getNotifications,
     markAsRead,
     deleteNotification,
     createOrderStatusNotification,
-    markAsAllRead
+    markAsAllRead,
+    sendPromotionNotification,
+    sendSystemNotification
 };
