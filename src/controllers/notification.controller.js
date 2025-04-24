@@ -101,7 +101,7 @@ const deleteNotification = asyncHandler(async (req, res) => {
 
 });
 
-const createOrderStatusNotification = async (orderId, status) => {
+const createOrderStatusNotification2 = async (orderId, status) => {
     try {
         const order = await Order.findById(orderId).populate('user collector');
         if (!order) return;
@@ -153,6 +153,124 @@ const createOrderStatusNotification = async (orderId, status) => {
         console.error("Error creating order status notification:", error);
     }
 };
+
+
+async function sendPushNotifications(expo, pushMessages) {
+    if (!pushMessages.length) return;
+
+    try {
+        const chunks = expo.chunkPushNotifications(pushMessages);
+        await Promise.all(
+            chunks.map(chunk => expo.sendPushNotificationsAsync(chunk))
+        );
+    } catch (error) {
+        console.error("Error sending push notifications:", error);
+    }
+}
+
+
+const createOrderStatusNotification = async (orderId, status) => {
+    try {
+        const order = await Order.findById(orderId)
+            .populate('user', 'expoPushToken fullName')
+            .populate('collector', 'expoPushToken fullName');
+
+        if (!order) return;
+
+        let title, message, collectorTitle, collectorMessage;
+        const metadata = { orderId: order._id, status };
+        const shortOrderId = order._id.toString().slice(-6);
+
+        switch (status) {
+            case ORDER_STATUS.ACCEPTED:
+                title = "Order Accepted";
+                message = `Your order #${shortOrderId} has been accepted by ${order.collector?.fullName || 'a collector'}.`;
+                break;
+            case ORDER_STATUS.RECYCLED:
+                title = "Order Recycled";
+                message = `Your order #${shortOrderId} has been marked as recycled.`;
+                collectorTitle = "Order Recycled";
+                collectorMessage = `Order #${shortOrderId} has been recycled.`;
+                break;
+            case ORDER_STATUS.CANCELLED:
+                title = "Order Cancelled";
+                message = `Your order #${shortOrderId} has been cancelled.`;
+                collectorTitle = "Order Cancelled";
+                collectorMessage = `Order #${shortOrderId} has been cancelled.`;
+                break;
+            default:
+                return;
+        }
+
+        // Prepare notifications and push messages
+        const notifications = [];
+        const pushMessages = [];
+        const expo = new Expo();
+
+        // User notification
+        if (order.user) {
+            notifications.push({
+                user: order.user._id,
+                order: order._id,
+                title,
+                message,
+                type: `ORDER_${status.toUpperCase()}`,
+                metadata
+            });
+
+            if (order.user.expoPushToken && Expo.isExpoPushToken(order.user.expoPushToken)) {
+                pushMessages.push({
+                    to: order.user.expoPushToken,
+                    sound: 'default',
+                    title,
+                    body: message,
+                    data: {
+                        ...metadata,
+                        notificationType: `ORDER_${status.toUpperCase()}`,
+                        sentAt: new Date().toISOString()
+                    }
+                });
+            }
+        }
+
+        // // Collector notification (if applicable)
+        // if (order.collector && status !== ORDER_STATUS.ACCEPTED) {
+        //     notifications.push({
+        //         collector: order.collector._id,
+        //         order: order._id,
+        //         title: collectorTitle || `Order ${status}`,
+        //         message: collectorMessage || `Order #${shortOrderId} has been ${status.toLowerCase()}.`,
+        //         type: `ORDER_${status.toUpperCase()}`,
+        //         metadata
+        //     });
+
+        //     if (order.collector.expoPushToken && Expo.isExpoPushToken(order.collector.expoPushToken)) {
+        //         pushMessages.push({
+        //             to: order.collector.expoPushToken,
+        //             sound: 'default',
+        //             title: collectorTitle || `Order ${status}`,
+        //             body: collectorMessage || `Order #${shortOrderId} has been ${status.toLowerCase()}.`,
+        //             data: {
+        //                 ...metadata,
+        //                 notificationType: `ORDER_${status.toUpperCase()}`,
+        //                 sentAt: new Date().toISOString()
+        //             }
+        //         });
+        //     }
+        // }
+
+        // Execute all operations in parallel
+        await Promise.all([
+            Notification.insertMany(notifications),
+            sendPushNotifications(expo, pushMessages)
+        ]);
+
+    } catch (error) {
+        console.error("Error creating order status notification:", error);
+        // Consider adding error reporting here
+    }
+};
+
 
 
 const markAsAllRead = asyncHandler(async (req, res) => {
@@ -295,7 +413,7 @@ const sendSystemNotification = asyncHandler(async (req, res) => {
 
         // Validate input
         if (!title?.trim() || !message?.trim()) {
-          throw new ApiError(400, "Notification title and message are required");
+            throw new ApiError(400, "Notification title and message are required");
         }
 
         const [users, collectors] = await Promise.all([

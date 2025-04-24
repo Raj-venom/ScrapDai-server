@@ -268,6 +268,8 @@ const completeOrder = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Something went wrong while updating order")
     }
 
+    await createOrderStatusNotification(updatedOrder._id, ORDER_STATUS.RECYCLED);
+
     res
         .status(200)
         .json(new ApiResponse(200, updatedOrder, "Order completed successfully"));
