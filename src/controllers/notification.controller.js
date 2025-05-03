@@ -514,6 +514,24 @@ const sendSystemNotification = asyncHandler(async (req, res) => {
     }
 });
 
+
+const getUnreadNotificationsCount = asyncHandler(async (req, res) => {
+    const { userId, collectorId } = req.query;
+    let query = {};
+
+    if (userId) {
+        query.user = userId;
+    } else if (collectorId) {
+        query.collector = collectorId;
+    } else {
+        return res.status(400).json({ message: "Either user or collector ID is required" });
+    }
+
+    const count = await Notification.countDocuments({ ...query, isRead: false });
+
+    return res.status(200).json(new ApiResponse(200, { count }, "Unread notifications count fetched successfully"));
+});
+
 export {
     createNotification,
     getNotifications,
@@ -522,5 +540,6 @@ export {
     createOrderStatusNotification,
     markAsAllRead,
     sendPromotionNotification,
-    sendSystemNotification
+    sendSystemNotification,
+    getUnreadNotificationsCount
 };

@@ -7,6 +7,7 @@ import {
     markAsAllRead,
     sendPromotionNotification,
     sendSystemNotification,
+    getUnreadNotificationsCount,
 } from "../controllers/notification.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -17,6 +18,9 @@ const router = express.Router();
 router.route("/")
     .post(createNotification)
     .get(getNotifications);
+
+
+router.route("/unread-count").get(getUnreadNotificationsCount);
 
 router.route("/:notificationId/read").patch(markAsRead);
 router.route("/mark-as-all-read").patch(markAsAllRead);
