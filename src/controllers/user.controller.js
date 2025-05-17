@@ -40,6 +40,10 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All field are required")
     }
 
+    if(password.length < 8) {
+        throw new ApiError(400, "Password must be at least 8 characters")
+    }
+
     if (phone.length !== 10) {
         throw new ApiError(400, "Phone number must be 10 digits")
     }

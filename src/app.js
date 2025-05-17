@@ -7,7 +7,7 @@ import { handleError } from "./middlewares/handleError.middleware.js"
 const app = express()
 
 app.use(cors({
-  origin:['http://localhost:3000'],
+  origin:['http://localhost:3000', "http://192.168.1.69:3000", "https://scrap-dai-admin.vercel.app" ],
   credentials: true
 }))
 
