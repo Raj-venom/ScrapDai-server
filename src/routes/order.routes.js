@@ -15,7 +15,8 @@ import {
     getOrderScheduledForToday,
     getCollectorsOrdersHistory,
     getCollectorOrderHistoryById,
-    getUserOrderHistoryById
+    getUserOrderHistoryById,
+    updateOrderScheduledDate
 
 } from '../controllers/order.controller.js';
 
@@ -42,6 +43,7 @@ router.route('/')
 
     );
 
+// NOTE: Old API not in used 
 router.route('/place-order').post(verifyAuthourization(USER_ROLE.USER), placeOrder);
 
 
@@ -68,6 +70,7 @@ router.route('/:id/complete').patch(verifyAuthourization(USER_ROLE.COLLECTOR), c
 router.route('/:id/accept').patch(verifyAuthourization(USER_ROLE.COLLECTOR), acceptOrder);
 
 router.route('/:id/cancel').patch(verifyAuthourization(USER_ROLE.USER), cancelOrder);
+router.route('/:id/update-scheduled-date').patch(verifyAuthourization(USER_ROLE.USER), updateOrderScheduledDate);
 
 
 export default router;

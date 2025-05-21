@@ -1,4 +1,6 @@
 export const DB_NAME = "scrapDaiDb";
+// export const DB_NAME = "scrapDaiDb_Production";
+
 export const GENDER = ["Male", "Female", "Other"];
 
 export const USER_ROLE = {
@@ -19,4 +21,5 @@ export const TIME_LINE_MESSAGES = {
     ORDER_ACCEPTED: "Your order has been accepted by the collector",
     ORDER_CANCELLED: "Your order has been cancelled",
     ORDER_RECYCLED: "Your order has been recycled",
+    ORDER_RESCHEDULED: "Your order has been rescheduled",
 }

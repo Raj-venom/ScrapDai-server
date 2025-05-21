@@ -300,9 +300,6 @@ const cancelOrder = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Order not found")
     }
 
-    if (order.status != ORDER_STATUS.PENDING) {
-        throw new ApiError(400, "Order is already assigned")
-    }
 
     if (order.status == ORDER_STATUS.RECYCLED) {
         throw new ApiError(400, "Order is already completed")
@@ -317,26 +314,40 @@ const cancelOrder = asyncHandler(async (req, res) => {
     }
 
     order.status = ORDER_STATUS.CANCELLED;
-    const updatedOrder = await order.save();
+    order.timeline.push({
+        date: new Date(),
+        time: new Date().toLocaleTimeString(),
+        message: TIME_LINE_MESSAGES.ORDER_CANCELLED
+    })
+    const updatedOrder = await (await order.save()).populate('user', 'email');
 
     if (!updatedOrder) {
         throw new ApiError(500, "Something went wrong while updating order")
     }
 
+    await createOrderStatusNotification(updatedOrder._id, ORDER_STATUS.CANCELLED);
+
+
     res
         .status(200)
         .json(new ApiResponse(200, updatedOrder, "Order cancelled successfully"));
 
-    sendEmail(updatedOrder.user.email, {
-        subject: "Order Cancelled",
-        text: `Your order has been cancelled by ${req.user.fullName}. Your order id is ${updatedOrder._id}`,
-        body: ` <h1>Order Cancelled</h1>
-        <p>Your order has been cancelled by ${req.user.fullName}</p>
-        <p>Your order id is ${updatedOrder._id}</p>
-        <p>Order Date: ${updatedOrder.createdAt}</p>
-        <p>Status: ${updatedOrder.status}</p>
-        `
-    })
+    try {
+        sendEmail(updatedOrder.user.email, {
+            subject: "Order Cancelled",
+            text: `Your order has been cancelled. Your order id is ${updatedOrder._id}`,
+            body: ` <h1>Order Cancelled</h1>
+            <p>Your order has been cancelled by ${req.user.fullName}</p>
+            <p>Your order id is ${updatedOrder._id}</p>
+            <p>Order Date: ${updatedOrder.createdAt}</p>
+            <p>Status: ${updatedOrder.status}</p>
+            `
+        })
+    } catch (error) {
+        console.log("Error sending email: ", error);
+        // Handle the error as needed, e.g., log it or send a notification
+    }
+
 
     return;
 
@@ -734,6 +745,52 @@ const getCollectorOrderHistoryById = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, orders, "Orders fetched successfully"));
 });
 
+
+const updateOrderScheduledDate = asyncHandler(async (req, res) => {
+    const orderId = req.params.id;
+    const { pickUpDate, pickUpTime } = req.body;
+
+    if (!pickUpDate || !pickUpTime) {
+        throw new ApiError(400, "Pick up date and time are required")
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+        throw new ApiError(404, "Order not found")
+    }
+
+
+    if(order.status == ORDER_STATUS.RECYCLED) {
+        throw new ApiError(400, "Cannot reschedule order after completion")
+    }
+
+    if (order.status == ORDER_STATUS.CANCELLED) {
+        throw new ApiError(400, "Cannot reschedule order after cancellation")
+    }
+
+
+    order.pickUpDate = pickUpDate;
+    order.pickUpTime = pickUpTime;
+
+    order.timeline.push({
+        date: new Date(),
+        time: new Date().toLocaleTimeString(),
+        message: TIME_LINE_MESSAGES.ORDER_RESCHEDULED
+    })
+
+    const updatedOrder = await order.save();
+    if (!updatedOrder) {
+        throw new ApiError(500, "Something went wrong while updating order")
+    }
+
+    res
+        .status(200)
+        .json(new ApiResponse(200, updatedOrder, "Order updated successfully"));
+
+});
+
+
+
 export {
     createOrder,
     getMyOrders,
@@ -750,5 +807,6 @@ export {
     getOrderScheduledForToday,
     getCollectorsOrdersHistory,
     getUserOrderHistoryById,
-    getCollectorOrderHistoryById
+    getCollectorOrderHistoryById,
+    updateOrderScheduledDate
 }
