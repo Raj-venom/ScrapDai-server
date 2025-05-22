@@ -2,9 +2,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { Category } from "../models/category.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import mongoose from "mongoose";
 import slugify from "slugify";
+import { Scrap } from "../models/scrap.model.js";
 
 
 
@@ -154,11 +155,110 @@ const getSingleCategory = asyncHandler(async (req, res) => {
 
 })
 
+const updateCategory = asyncHandler(async (req, res) => {
 
+    const { id } = req.params
+    const { name, description } = req.body
+    const categoryImageLocalPath = req.file?.path
+
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(id)
+    if (!isValidObjectId) {
+        throw new ApiError(400, "Invalid category id")
+    }
+
+    const existingCategory = await Category.findById(id)
+
+    if (!existingCategory) {
+        throw new ApiError(404, "Category not found")
+    }
+
+    const updatedFields = {
+        name: name || existingCategory.name,
+        description: description || existingCategory.description,
+    }
+
+    if (categoryImageLocalPath) {
+        const image = await uploadOnCloudinary(categoryImageLocalPath)
+        updatedFields.image = image.url
+    }
+
+    const slug = slugify(name, { lower: true, strict: true })
+    updatedFields.slug = slug
+
+    const category = await Category.findByIdAndUpdate(id, updatedFields, { new: true })
+
+    if (!category) {
+        throw new ApiError(500, "Something went wrong while updating category")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, category, "Category updated successfully"))
+
+
+});
+
+
+// delete category
+const deleteCategory = asyncHandler(async (req, res) => {
+
+    const { id } = req.params
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(id)
+
+    if (!isValidObjectId) {
+        throw new ApiError(400, "Invalid category id")
+    }
+
+    const existingCategory = await Category.findById(id)
+
+    if (!existingCategory) {
+        throw new ApiError(404, "Category not found")
+    }
+
+
+    const existingCategoryScraps = await Scrap.find({ category: id })
+
+
+    if (existingCategoryScraps.length > 0) {
+        const categoryScrapDeleted = await Scrap.deleteMany({ category: id })
+
+        // if all scraps deleted successfully with no errors
+        if (!categoryScrapDeleted) {
+            throw new ApiError(500, "Something went wrong while deleting scraps")
+        }
+
+        // if some scraps deleted successfully with no errors
+        if (categoryScrapDeleted && categoryScrapDeleted.deletedCount < existingCategoryScraps.length) {
+            throw new ApiError(500, "Some scraps failed to delete")
+        }
+
+        // if no scraps deleted successfully with no errors
+        if (categoryScrapDeleted && categoryScrapDeleted.deletedCount === 0) {
+            throw new ApiError(500, "No scraps deleted successfully")
+        }
+
+
+    }
+
+    const category = await Category.findByIdAndDelete(id)
+
+
+    if (!category) {
+        throw new ApiError(500, "Something went wrong while deleting category")
+    }
+
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, null, "Category deleted successfully"))
+
+})
 
 export {
     addNewCategory,
     getAllCategories,
-    getSingleCategory
+    getSingleCategory,
+    updateCategory,
+    deleteCategory
 
 }

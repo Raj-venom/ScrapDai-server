@@ -3,6 +3,8 @@ import {
     addNewCategory,
     getAllCategories,
     getSingleCategory,
+    updateCategory,
+    deleteCategory
 
 } from '../controllers/category.controller.js';
 
@@ -19,6 +21,13 @@ router.route('/').post(verifyAuthourization(USER_ROLE.ADMIN), upload.single('cat
 // GET
 router.route('/').get(getAllCategories);
 router.route('/:slug').get(getSingleCategory);
+
+// PATCH
+router.route("/:id").patch(verifyAuthourization(USER_ROLE.ADMIN), upload.single('categoryImage'), updateCategory);
+
+
+// DELETE
+router.route('/:id').delete(verifyAuthourization(USER_ROLE.ADMIN), deleteCategory);
 
 
 export default router
