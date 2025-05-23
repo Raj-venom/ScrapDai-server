@@ -7,6 +7,7 @@ const NOTIFICATION_TYPES = {
     GENERAL: "GENERAL",
     PROMOTIONAL: "PROMOTIONAL",
     SYSTEM: "SYSTEM",
+    ORDER_RESCHEDULED: "ORDER_RESCHEDULED",
 };
 
 const notificationSchema = new mongoose.Schema({

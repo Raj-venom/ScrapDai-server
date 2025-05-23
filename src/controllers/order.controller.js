@@ -778,6 +778,8 @@ const updateOrderScheduledDate = asyncHandler(async (req, res) => {
         message: TIME_LINE_MESSAGES.ORDER_RESCHEDULED
     })
 
+    await createOrderStatusNotification(order._id, "Rescheduled");
+
     const updatedOrder = await order.save();
     if (!updatedOrder) {
         throw new ApiError(500, "Something went wrong while updating order")
@@ -787,6 +789,7 @@ const updateOrderScheduledDate = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, updatedOrder, "Order updated successfully"));
 
+    //TODO: send email to user about order rescheduled
 });
 
 

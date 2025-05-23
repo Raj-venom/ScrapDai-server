@@ -198,6 +198,14 @@ const createOrderStatusNotification = async (orderId, status) => {
                 collectorTitle = "Order Cancelled";
                 collectorMessage = `Order #${shortOrderId} has been cancelled.`;
                 break;
+
+            case "Rescheduled":
+                title = "Order Rescheduled";
+                message = `Your order #${shortOrderId} has been rescheduled.`;
+                collectorTitle = "Order Rescheduled";
+                collectorMessage = `Order #${shortOrderId} has been rescheduled.`;
+                break;
+
             default:
                 return;
         }
@@ -232,32 +240,32 @@ const createOrderStatusNotification = async (orderId, status) => {
                 });
             }
         }
+        // Collector notification (if applicable)
+        if (order?.collector && status !== ORDER_STATUS.ACCEPTED) {
+            notifications.push({
+                collector: order.collector._id,
+                order: order._id,
+                title: collectorTitle || `Order ${status}`,
+                message: collectorMessage || `Order #${shortOrderId} has been ${status.toLowerCase()}.`,
+                type: `ORDER_${status.toUpperCase()}`,
+                metadata
+            });
 
-        // // Collector notification (if applicable)
-        // if (order.collector && status !== ORDER_STATUS.ACCEPTED) {
-        //     notifications.push({
-        //         collector: order.collector._id,
-        //         order: order._id,
-        //         title: collectorTitle || `Order ${status}`,
-        //         message: collectorMessage || `Order #${shortOrderId} has been ${status.toLowerCase()}.`,
-        //         type: `ORDER_${status.toUpperCase()}`,
-        //         metadata
-        //     });
 
-        //     if (order.collector.expoPushToken && Expo.isExpoPushToken(order.collector.expoPushToken)) {
-        //         pushMessages.push({
-        //             to: order.collector.expoPushToken,
-        //             sound: 'default',
-        //             title: collectorTitle || `Order ${status}`,
-        //             body: collectorMessage || `Order #${shortOrderId} has been ${status.toLowerCase()}.`,
-        //             data: {
-        //                 ...metadata,
-        //                 notificationType: `ORDER_${status.toUpperCase()}`,
-        //                 sentAt: new Date().toISOString()
-        //             }
-        //         });
-        //     }
-        // }
+            if (order.collector.expoPushToken && Expo.isExpoPushToken(order.collector.expoPushToken)) {
+                pushMessages.push({
+                    to: order.collector.expoPushToken,
+                    sound: 'default',
+                    title: collectorTitle || `Order ${status}`,
+                    body: collectorMessage || `Order #${shortOrderId} has been ${status.toLowerCase()}.`,
+                    data: {
+                        ...metadata,
+                        notificationType: `ORDER_${status.toUpperCase()}`,
+                        sentAt: new Date().toISOString()
+                    }
+                });
+            }
+        }
 
         // Execute all operations in parallel
         await Promise.all([
@@ -267,7 +275,6 @@ const createOrderStatusNotification = async (orderId, status) => {
 
     } catch (error) {
         console.error("Error creating order status notification:", error);
-        // Consider adding error reporting here
     }
 };
 
