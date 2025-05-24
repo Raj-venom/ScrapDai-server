@@ -1,5 +1,5 @@
-export const DB_NAME = "scrapDaiDb";
-// export const DB_NAME = "scrapDaiDb_Production";
+// export const DB_NAME = "scrapDaiDb";
+export const DB_NAME = "scrapDaiDb_Production";
 
 export const GENDER = ["Male", "Female", "Other"];
 

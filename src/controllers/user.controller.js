@@ -40,7 +40,7 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All field are required")
     }
 
-    if(password.length < 8) {
+    if (password.length < 8) {
         throw new ApiError(400, "Password must be at least 8 characters")
     }
 
@@ -716,9 +716,14 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 const banUser = asyncHandler(async (req, res) => {
 
     const userId = req.params.id
+    const { bannedReason } = req.body
 
     if (!isValidObjectId(userId)) {
         throw new ApiError(400, "Invalid user id")
+    }
+
+    if (!bannedReason?.trim()) {
+        throw new ApiError(400, "Banned reason is required")
     }
 
     if (!userId) {
@@ -736,10 +741,25 @@ const banUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User already banned")
     }
     user.isBanned = true
+    user.bannedReason = bannedReason.trim();
+    // user.deletionRequested = false
     await user.save()
-    return res
+
+    res
         .status(200)
         .json(new ApiResponse(200, {}, "User banned successfully"))
+
+    try {
+        await sendEmail(user.email, {
+            subject: "Account Banned",
+            text: `Your account has been banned for the following reason: ${bannedReason}`,
+            body: `Your account has been banned for the following reason: ${bannedReason}`
+        })
+
+    } catch (error) {
+        console.log("Error in sending email", error)
+    }
+    return
 
 })
 

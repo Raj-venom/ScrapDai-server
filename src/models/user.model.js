@@ -96,7 +96,11 @@ const userSchema = new mongoose.Schema(
         expoPushToken: {
             type: String,
             default: null
-        }
+        },
+        bannedReason: {
+            type: String,
+            default: null
+        },
 
     },
     {
